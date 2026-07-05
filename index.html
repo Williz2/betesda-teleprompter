@@ -446,7 +446,7 @@
     </div>
     <div class="r-adjust-card">
       <button class="r-adj-btn" id="rFtDown">A−</button>
-      <div><div class="r-adjust-label">Texto</div><div class="r-adjust-val" id="rFtVal">M</div></div>
+      <div><div class="r-adjust-label">Texto</div><div class="r-adjust-val" id="rFtVal">0</div></div>
       <button class="r-adj-btn" id="rFtUp">A+</button>
     </div>
   </div>
@@ -535,11 +535,11 @@ function initTeleprompter() {
 
   /* — Tamaño texto — */
   function setFontSize(v) {
-    fontSize = Math.min(2.4, Math.max(0.9, parseFloat(v.toFixed(2))));
+    fontSize = Math.min(12.0, Math.max(0.9, parseFloat(v.toFixed(2))));
     document.querySelectorAll('.line-text').forEach(el => el.style.fontSize = fontSize + 'rem');
   }
-  document.getElementById('fUp').addEventListener('click',   () => setFontSize(fontSize + 0.1));
-  document.getElementById('fDown').addEventListener('click', () => setFontSize(fontSize - 0.1));
+  document.getElementById('fUp').addEventListener('click',   () => setFontSize(fontSize + 0.15));
+  document.getElementById('fDown').addEventListener('click', () => setFontSize(fontSize - 0.15));
 
   /* — Brillo — */
   function setBrightness(v) {
@@ -701,7 +701,7 @@ function initTeleprompter() {
         if (data.cmd === 'pause')      pause();
         if (data.cmd === 'reset')      reset();
         if (data.cmd === 'speed')      setSpeed(data.value);
-        if (data.cmd === 'fontSize')   setFontSize(fontSize + (data.dir === 'up' ? 0.1 : -0.1));
+        if (data.cmd === 'fontSize')   setFontSize(fontSize + (data.dir === 'up' ? 0.15 : -0.15));
         if (data.cmd === 'brightness') setBrightness(brightness + (data.dir === 'up' ? 0.1 : -0.1));
         if (data.cmd === 'scroll')     scrollDelta(data.delta);
         if (data.cmd === 'block')      goToBlock(data.dir);
@@ -730,8 +730,7 @@ function initRemote(peerId) {
   let conn;
   let remoteSpeed = 1.0;
   let brightness  = 1.0;
-  let fontStep    = 3; // 1-5 escala visual
-  const fontLabels = ['XS','S','M','L','XL'];
+  let fontStep    = 0; // contador relativo, sin límite fijo
 
   const btnFullscreen = document.getElementById('rFullscreen');
   const btnMirror     = document.getElementById('rMirror');
@@ -791,13 +790,13 @@ function initRemote(peerId) {
 
   /* Tamaño texto */
   document.getElementById('rFtDown').addEventListener('click', () => {
-    fontStep = Math.max(0, fontStep-1);
-    rFtVal.textContent = fontLabels[fontStep];
+    fontStep -= 1;
+    rFtVal.textContent = fontStep;
     send({ cmd:'fontSize', dir:'down' });
   });
   document.getElementById('rFtUp').addEventListener('click', () => {
-    fontStep = Math.min(4, fontStep+1);
-    rFtVal.textContent = fontLabels[fontStep];
+    fontStep += 1;
+    rFtVal.textContent = fontStep;
     send({ cmd:'fontSize', dir:'up' });
   });
 
