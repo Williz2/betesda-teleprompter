@@ -160,6 +160,14 @@
   }
   footer { text-align: center; padding: 16px; color: var(--muted); font-size: 0.75rem; }
 
+  /* ── MODO INMERSIVO (pantalla completa limpia) ── */
+  body.immersive header,
+  body.immersive .progress-bar,
+  body.immersive .legend { display: none !important; }
+  body.immersive .speaker { display: none !important; }
+  body.immersive .line { grid-template-columns: 1fr; }
+  body.immersive #script { margin-top: 30px; }
+  body.immersive .edit-banner { top: 10px; }
 
   /* ══════════════════════════════════════════
      MODO REMOTO — iPhone UI
@@ -292,6 +300,22 @@
     font-family: inherit; user-select: none; -webkit-user-select: none;
   }
   .r-spd-btn:active { background: rgba(248,153,29,.15); border-color: var(--naranja); color: var(--naranja); }
+
+  /* — Herramientas extra (pantalla completa / espejo / editar) — */
+  .r-tools {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; flex-shrink: 0;
+  }
+  .r-tool-btn {
+    padding: 12px 6px; border-radius: 12px;
+    border: 1px solid #2a3555; background: #161c28;
+    color: #aab; font-family: inherit; font-size: 0.68rem; font-weight: 700;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    user-select: none; -webkit-user-select: none;
+  }
+  .r-tool-btn .r-tool-icon { font-size: 1.15rem; }
+  .r-tool-btn:active { background: rgba(248,153,29,.1); }
+  .r-tool-btn.active { border-color: var(--naranja); color: var(--naranja); background: rgba(248,153,29,.1); }
 </style>
 </head>
 <body>
@@ -455,6 +479,13 @@
     <button class="r-spd-btn" id="rSUp">+</button>
   </div>
 
+  <!-- Herramientas: pantalla completa / espejo / editar -->
+  <div class="r-tools">
+    <button class="r-tool-btn" id="rFullscreen"><span class="r-tool-icon">⛶</span>Pantalla completa</button>
+    <button class="r-tool-btn" id="rMirror"><span class="r-tool-icon">⇄</span>Espejo</button>
+    <button class="r-tool-btn" id="rEdit"><span class="r-tool-icon">✏️</span>Editar</button>
+  </div>
+
 </div>
 
 <script>
@@ -510,29 +541,40 @@ function initTeleprompter() {
     scriptEl.style.filter = brightness < 1.0 ? `brightness(${brightness})` : '';
   }
 
-  /* — Pantalla completa — */
+  /* — Pantalla completa (modo inmersivo: solo texto) — */
   const btnFs = document.getElementById('btnFs');
-  btnFs.addEventListener('click', () => {
+  function toggleFullscreen() {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+      document.documentElement.requestFullscreen().catch(() => {
+        // Si el navegador rechaza el fullscreen remoto (requiere gesto local),
+        // igual aplicamos el modo inmersivo visual.
+        document.body.classList.add('immersive');
+        btnFs.textContent = '✕ Salir pantalla completa';
+        sendRemoteState();
+      });
     } else {
       document.exitFullscreen();
     }
-  });
+  }
+  btnFs.addEventListener('click', toggleFullscreen);
   document.addEventListener('fullscreenchange', () => {
     const full = !!document.fullscreenElement;
     btnFs.textContent = full ? '✕ Salir pantalla completa' : '⛶ Pantalla completa';
+    document.body.classList.toggle('immersive', full);
+    sendRemoteState();
   });
 
   /* — Espejo — */
-  document.getElementById('btnMirror').addEventListener('click', () => {
+  function toggleMirror() {
     mirrored = !mirrored;
     document.body.classList.toggle('mirror', mirrored);
     document.getElementById('btnMirror').classList.toggle('active', mirrored);
-  });
+    sendRemoteState();
+  }
+  document.getElementById('btnMirror').addEventListener('click', toggleMirror);
 
   /* — Edición — */
-  document.getElementById('btnEdit').addEventListener('click', () => {
+  function toggleEdit() {
     editMode = !editMode;
     document.body.classList.toggle('edit-mode', editMode);
     document.getElementById('btnEdit').classList.toggle('active', editMode);
@@ -540,7 +582,22 @@ function initTeleprompter() {
       editMode ? el.setAttribute('contenteditable','true') : el.removeAttribute('contenteditable')
     );
     if (editMode) { scrolling = false; cancelAnimationFrame(raf); }
-  });
+    sendRemoteState();
+  }
+  document.getElementById('btnEdit').addEventListener('click', toggleEdit);
+
+  /* — Enviar estado actual al iPhone (para sincronizar botones activos) — */
+  function sendRemoteState() {
+    if (remotePeer && remotePeer.open) {
+      remotePeer.send({
+        state: {
+          mirror: mirrored,
+          edit: editMode,
+          fullscreen: document.body.classList.contains('immersive') || !!document.fullscreenElement
+        }
+      });
+    }
+  }
 
   /* — Scroll — */
   function play()  { if (editMode) return; scrolling = true; cancelAnimationFrame(raf); raf = requestAnimationFrame(autoScroll); }
@@ -642,7 +699,11 @@ function initTeleprompter() {
         if (data.cmd === 'brightness') setBrightness(brightness + (data.dir === 'up' ? 0.1 : -0.1));
         if (data.cmd === 'scroll')     scrollDelta(data.delta);
         if (data.cmd === 'block')      goToBlock(data.dir);
+        if (data.cmd === 'fullscreen') toggleFullscreen();
+        if (data.cmd === 'mirror')     toggleMirror();
+        if (data.cmd === 'edit')       toggleEdit();
       });
+      conn.on('open', () => sendRemoteState());
       conn.on('close', () => {
         panelStatus.textContent = 'Desconectado';
         panelStatus.classList.remove('connected');
@@ -666,16 +727,32 @@ function initRemote(peerId) {
   let fontStep    = 3; // 1-5 escala visual
   const fontLabels = ['XS','S','M','L','XL'];
 
+  const btnFullscreen = document.getElementById('rFullscreen');
+  const btnMirror     = document.getElementById('rMirror');
+  const btnEdit       = document.getElementById('rEdit');
+
   const peer = new Peer();
   peer.on('open', () => {
     rStatus.textContent = 'Conectando…';
     conn = peer.connect(peerId);
     conn.on('open',  () => { rStatus.textContent = '✓ Conectado'; rStatus.classList.add('connected'); });
     conn.on('close', () => { rStatus.textContent = 'Desconectado'; rStatus.classList.remove('connected'); });
+    conn.on('data', data => {
+      if (data.state) {
+        btnFullscreen.classList.toggle('active', !!data.state.fullscreen);
+        btnMirror.classList.toggle('active', !!data.state.mirror);
+        btnEdit.classList.toggle('active', !!data.state.edit);
+      }
+    });
   });
   peer.on('error', () => { rStatus.textContent = 'Sin conexión'; });
 
   function send(data) { if (conn && conn.open) conn.send(data); }
+
+  /* Herramientas: pantalla completa / espejo / editar */
+  btnFullscreen.addEventListener('click', () => send({ cmd: 'fullscreen' }));
+  btnMirror.addEventListener('click',     () => send({ cmd: 'mirror' }));
+  btnEdit.addEventListener('click',       () => send({ cmd: 'edit' }));
 
   /* Botones principales */
   document.getElementById('rPlay').addEventListener('click',  () => send({ cmd:'play' }));
