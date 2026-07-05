@@ -1,784 +1,154 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>MOMENTOS — Teleprompter | Betesda Media</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-
-  :root {
-    --azul: #233052;
-    --naranja: #f8991d;
-    --julian: #5bc4f5;
-    --fabiana: #f87db0;
-    --ambos: #f8991d;
-    --bg: #0d1117;
-    --surface: #161c28;
-    --text: #f0f4ff;
-    --muted: #6b7a99;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
-
-  /* ── HEADER ── */
-  header {
-    position: fixed; top: 0; left: 0; right: 0;
-    background: var(--azul); z-index: 100;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 20px; border-bottom: 3px solid var(--naranja);
-    gap: 12px; flex-wrap: wrap;
-  }
-  .logo { font-size: 1rem; font-weight: 900; letter-spacing: 0.08em; color: #fff; }
-  .logo span { color: var(--naranja); }
-  .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .ctrl-group {
-    display: flex; align-items: center; gap: 5px;
-    background: rgba(255,255,255,0.05); border: 1px solid #2a3555;
-    border-radius: 8px; padding: 4px 8px;
-  }
-  .ctrl-label { font-size: 0.68rem; color: #8899bb; text-transform: uppercase; letter-spacing: 0.06em; margin-right: 2px; }
-  .icon-btn {
-    width: 30px; height: 30px; border: 1px solid #2a3555; border-radius: 6px;
-    background: transparent; color: #aab; font-size: 0.95rem; font-weight: 700;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: border-color .15s, color .15s; font-family: inherit;
-  }
-  .icon-btn:hover { border-color: var(--naranja); color: var(--naranja); }
-  .speed-val { font-size: 0.8rem; font-weight: 700; color: #fff; min-width: 28px; text-align: center; }
-  .btn {
-    padding: 6px 14px; border: none; border-radius: 6px;
-    font-family: inherit; font-size: 0.82rem; font-weight: 700;
-    cursor: pointer; transition: opacity .2s;
-    height: 30px; display: flex; align-items: center; gap: 5px; white-space: nowrap;
-  }
-  .btn:hover { opacity: .85; }
-  .btn-start  { background: var(--naranja); color: #fff; }
-  .btn-stop   { background: #2a3555; color: #aab; }
-  .btn-reset  { background: transparent; border: 1px solid #2a3555; color: #aab; }
-  .btn-mirror { background: transparent; border: 1px solid #2a3555; color: #aab; }
-  .btn-mirror.active { border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,.1); }
-  .btn-edit   { background: transparent; border: 1px solid #2a3555; color: #aab; }
-  .btn-edit.active   { border-color: #4ade80; color: #4ade80; background: rgba(74,222,128,.1); }
-  .btn-fs     { background: transparent; border: 1px solid #2a3555; color: #aab; }
-  .btn-remote { background: transparent; border: 1px solid #2a3555; color: #aab; }
-  .btn-remote.active { border-color: #34d399; color: #34d399; background: rgba(52,211,153,.1); }
-
-  /* ── PROGRESS BAR ── */
-  .progress-bar {
-    position: fixed; top: 59px; left: 0;
-    height: 3px; background: var(--naranja); width: 0%;
-    z-index: 99; transition: width .1s linear;
-  }
-
-  /* ── MIRROR ── */
-  body.mirror #script { transform: scaleX(-1); }
-  body.mirror .legend { transform: scaleX(-1); }
-
-  /* ── EDIT BANNER ── */
-  .edit-banner {
-    display: none; position: fixed; top: 62px; left: 0; right: 0;
-    background: rgba(74,222,128,.12); border-bottom: 1px solid #4ade80;
-    color: #4ade80; text-align: center;
-    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
-    padding: 5px; z-index: 98;
-  }
-  body.edit-mode .edit-banner { display: block; }
-  body.edit-mode .line-text[contenteditable="true"] {
-    outline: 1px dashed rgba(74,222,128,.3); border-radius: 4px; padding: 2px 6px; cursor: text;
-  }
-  body.edit-mode .line-text[contenteditable="true"]:focus {
-    outline: 1px solid #4ade80; background: rgba(74,222,128,.05);
-  }
-
-  /* ── REMOTE PANEL QR ── */
-  .remote-panel {
-    display: none; position: fixed; top: 70px; right: 20px;
-    background: #1a2035; border: 1px solid #2a3555;
-    border-radius: 14px; padding: 20px;
-    z-index: 200; text-align: center;
-    box-shadow: 0 8px 32px rgba(0,0,0,.6); min-width: 220px;
-  }
-  .remote-panel.visible { display: block; }
-  .remote-panel h3 { font-size: 0.72rem; color: #8899bb; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
-  .remote-panel .room-code { font-size: 2rem; font-weight: 900; letter-spacing: 0.2em; color: #34d399; margin-bottom: 12px; }
-  #qrcode { display: flex; justify-content: center; margin-bottom: 12px; }
-  #qrcode canvas, #qrcode img { border-radius: 8px; }
-  .remote-panel p { font-size: 0.7rem; color: #6b7a99; line-height: 1.5; }
-  .remote-status {
-    margin-top: 10px; padding: 5px 10px; border-radius: 20px;
-    font-size: 0.72rem; font-weight: 700;
-    background: rgba(107,114,153,.15); color: #6b7a99; display: inline-block;
-  }
-  .remote-status.connected { background: rgba(52,211,153,.15); color: #34d399; }
-
-  /* ── LEGEND ── */
-  .legend {
-    position: fixed; bottom: 20px; right: 20px;
-    background: var(--surface); border: 1px solid #2a3048;
-    border-radius: 10px; padding: 10px 14px;
-    z-index: 100; display: flex; flex-direction: column; gap: 5px;
-  }
-  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #aab; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-
-  /* ── SCRIPT AREA ── */
-  #script {
-    margin-top: 72px; padding: 40px 20px 120px;
-    max-width: 860px; margin-left: auto; margin-right: auto;
-    transition: transform .3s ease, filter .2s ease;
-  }
-  .section { margin-bottom: 56px; }
-  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
-  .section-tag {
-    background: var(--azul); border-left: 4px solid var(--naranja);
-    padding: 6px 14px; border-radius: 0 6px 6px 0;
-    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--naranja); white-space: nowrap;
-  }
-  .section-title { font-size: 1.1rem; font-weight: 900; color: #fff; letter-spacing: 0.03em; }
-  .divider { flex: 1; height: 1px; background: #2a3048; }
-  .line {
-    display: grid; grid-template-columns: 130px 1fr;
-    gap: 0 20px; padding: 14px 0;
-    border-bottom: 1px solid #1c2236; align-items: start;
-  }
-  .line:last-child { border-bottom: none; }
-  .speaker { font-size: 0.78rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; padding-top: 3px; text-align: right; }
-  .speaker.julian  { color: var(--julian); }
-  .speaker.fabiana { color: var(--fabiana); }
-  .speaker.ambos   { color: var(--ambos); }
-  .line-text { font-size: 1.35rem; line-height: 1.6; color: var(--text); }
-  .line-text em { font-style: normal; color: var(--muted); font-size: 0.85em; }
-  .line-text strong { color: var(--naranja); font-weight: 700; }
-  .line.active .line-text {
-    color: #fff; background: rgba(248,153,29,.07);
-    border-radius: 6px; padding: 4px 8px; margin: -4px -8px;
-  }
-  footer { text-align: center; padding: 16px; color: var(--muted); font-size: 0.75rem; }
-
-
-  /* ══════════════════════════════════════════
-     MODO REMOTO — iPhone UI
-  ══════════════════════════════════════════ */
-  body.remote-mode {
-    overflow: hidden; height: 100vh;
-    background: #0a0e1a;
-  }
-  body.remote-mode header,
-  body.remote-mode #script,
-  body.remote-mode .legend,
-  body.remote-mode .progress-bar,
-  body.remote-mode .edit-banner { display: none !important; }
-
-  .remote-ui {
-    display: none;
-    flex-direction: column;
-    height: 100vh; width: 100%;
-    padding: 16px 16px env(safe-area-inset-bottom, 16px);
-    gap: 10px;
-    overflow: hidden;
-  }
-  body.remote-mode .remote-ui { display: flex; }
-
-  /* — Top bar — */
-  .r-topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    flex-shrink: 0;
-  }
-  .r-logo { font-size: 0.85rem; font-weight: 900; color: #fff; letter-spacing: 0.08em; }
-  .r-logo span { color: var(--naranja); }
-  .r-status {
-    font-size: 0.72rem; padding: 4px 12px; border-radius: 20px;
-    background: rgba(107,114,153,.15); color: #6b7a99; font-weight: 700;
-  }
-  .r-status.connected { background: rgba(52,211,153,.15); color: #34d399; }
-
-  /* — Ajustes fila — */
-  .r-adjusts {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 8px; flex-shrink: 0;
-  }
-  .r-adjust-card {
-    background: #161c28; border: 1px solid #2a3555; border-radius: 12px;
-    padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  }
-  .r-adjust-label { font-size: 0.65rem; color: #6b7a99; text-transform: uppercase; letter-spacing: 0.07em; }
-  .r-adjust-val { font-size: 1rem; font-weight: 900; color: #fff; min-width: 32px; text-align: center; }
-  .r-adj-btn {
-    width: 34px; height: 34px; border-radius: 8px;
-    border: 1px solid #2a3555; background: transparent;
-    color: #aab; font-size: 1.1rem; font-weight: 700;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-family: inherit; user-select: none;
-    -webkit-user-select: none;
-  }
-  .r-adj-btn:active { background: rgba(248,153,29,.15); border-color: var(--naranja); color: var(--naranja); }
-
-  /* — Zona de deslizamiento — */
-  .r-swipe-zone {
-    flex: 1;
-    background: #0f1520;
-    border: 1.5px dashed #2a3555;
-    border-radius: 20px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 12px;
-    cursor: grab; user-select: none; -webkit-user-select: none;
-    touch-action: none;
-    position: relative;
-    overflow: hidden;
-    min-height: 0;
-  }
-  .r-swipe-zone:active { cursor: grabbing; border-color: var(--naranja); }
-  .r-swipe-icon { font-size: 2.2rem; opacity: 0.25; pointer-events: none; }
-  .r-swipe-label { font-size: 0.7rem; color: #3a4565; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; pointer-events: none; }
-  .r-swipe-ripple {
-    position: absolute; border-radius: 50%;
-    background: rgba(248,153,29,.2);
-    pointer-events: none;
-    transform: scale(0); opacity: 1;
-    transition: transform 0.6s ease-out, opacity 0.6s ease-out;
-    width: 80px; height: 80px; margin-left: -40px; margin-top: -40px;
-  }
-  .r-swipe-ripple.go { transform: scale(4); opacity: 0; }
-
-  /* — Bloques nav — */
-  .r-blocks {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 8px; flex-shrink: 0;
-  }
-  .r-block-btn {
-    padding: 12px 10px; border-radius: 12px;
-    border: 1px solid #2a3555; background: #161c28;
-    color: #aab; font-family: inherit; font-size: 0.78rem; font-weight: 700;
-    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-    user-select: none; -webkit-user-select: none;
-  }
-  .r-block-btn:active { background: rgba(248,153,29,.1); border-color: var(--naranja); color: var(--naranja); }
-
-  /* — Play row — */
-  .r-play-row {
-    display: grid; grid-template-columns: 1fr 1fr 80px;
-    gap: 8px; flex-shrink: 0;
-  }
-  .r-main-btn {
-    padding: 18px 10px; border: none; border-radius: 14px;
-    font-family: inherit; font-size: 1rem; font-weight: 900;
-    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-    user-select: none; -webkit-user-select: none;
-  }
-  .r-main-btn:active { opacity: 0.8; transform: scale(0.97); }
-  .r-btn-play  { background: var(--naranja); color: #fff; }
-  .r-btn-pause { background: #2a3555; color: #ccd; }
-  .r-btn-reset { background: transparent; border: 1px solid #2a3555; color: #6b7a99; font-size: 0.85rem; }
-
-  /* — Speed row — */
-  .r-speed-row {
-    background: #161c28; border: 1px solid #2a3555; border-radius: 12px;
-    padding: 10px 16px; display: flex; align-items: center;
-    justify-content: space-between; gap: 10px; flex-shrink: 0;
-  }
-  .r-speed-label { font-size: 0.65rem; color: #6b7a99; text-transform: uppercase; letter-spacing: 0.07em; }
-  .r-speed-val { font-size: 1.1rem; font-weight: 900; color: #fff; min-width: 36px; text-align: center; }
-  .r-spd-btn {
-    width: 40px; height: 40px; border-radius: 10px;
-    border: 1px solid #2a3555; background: transparent;
-    color: #aab; font-size: 1.3rem; font-weight: 700;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-family: inherit; user-select: none; -webkit-user-select: none;
-  }
-  .r-spd-btn:active { background: rgba(248,153,29,.15); border-color: var(--naranja); color: var(--naranja); }
-</style>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.6">
+  <style type="text/css">
+    body {background-color: #0b0c0f}
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; color: #ffffff; -webkit-text-stroke: #ffffff}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 9.8px 'Helvetica Neue'; color: #ffffff; -webkit-text-stroke: #ffffff}
+    p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; font: 8.2px 'Helvetica Neue'; color: #62729d; -webkit-text-stroke: #62729d}
+    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.4px 'Helvetica Neue'; color: #88869d; -webkit-text-stroke: #88869d}
+    p.p5 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 9.6px 'Helvetica Neue'; color: #ffffff; -webkit-text-stroke: #ffffff}
+    p.p6 {margin: 0.0px 0.0px 0.0px 0.0px; font: 9.8px 'Helvetica Neue'; color: #88869d; -webkit-text-stroke: #88869d; background-color: #151931}
+    p.p7 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; color: #e7edff; -webkit-text-stroke: #e7edff; background-color: #ef7315; min-height: 14.0px}
+    p.p8 {margin: 0.0px 0.0px 0.0px 0.0px; font: 9.0px 'Helvetica Neue'; color: #88869d; -webkit-text-stroke: #88869d; background-color: #40a7ee; min-height: 11.0px}
+    p.p9 {margin: 0.0px 0.0px 0.0px 0.0px; font: 9.0px 'Helvetica Neue'; color: #88869d; -webkit-text-stroke: #88869d; background-color: #0f1117}
+    p.p10 {margin: 0.0px 0.0px 0.0px 0.0px; font: 9.0px 'Helvetica Neue'; color: #88869d; -webkit-text-stroke: #88869d; background-color: #ed4890; min-height: 11.0px}
+    p.p11 {margin: 0.0px 0.0px 0.0px 0.0px; font: 9.0px 'Helvetica Neue'; color: #88869d; -webkit-text-stroke: #88869d; background-color: #ef7315; min-height: 11.0px}
+    p.p12 {margin: 0.0px 0.0px 0.0px 0.0px; font: 9.0px 'Helvetica Neue'; color: #88869d; -webkit-text-stroke: #88869d}
+    p.p13 {margin: 0.0px 0.0px 0.0px 0.0px; font: 9.0px 'Helvetica Neue'; color: #ef7315; -webkit-text-stroke: #ef7315; background-color: #151931}
+    p.p14 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.2px 'Helvetica Neue'; color: #ffffff; -webkit-text-stroke: #ffffff}
+    p.p15 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; color: #e7edff; -webkit-text-stroke: #e7edff; background-color: #181a2a; min-height: 14.0px}
+    p.p16 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: right; font: 9.4px 'Helvetica Neue'; color: #40a7ee; -webkit-text-stroke: #40a7ee}
+    p.p17 {margin: 0.0px 0.0px 0.0px 0.0px; font: 16.2px 'Helvetica Neue'; color: #e7edff; -webkit-text-stroke: #e7edff}
+    p.p18 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: right; font: 9.4px 'Helvetica Neue'; color: #ed4890; -webkit-text-stroke: #ed4890}
+    p.p19 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: right; font: 9.4px 'Helvetica Neue'; color: #ef7315; -webkit-text-stroke: #ef7315}
+    p.p20 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 9.0px 'Helvetica Neue'; color: #465274; -webkit-text-stroke: #465274}
+    span.s1 {font-kerning: none; background-color: #151931}
+    span.s2 {font: 12.0px 'Lucida Grande'; font-kerning: none; color: #ef7315; background-color: #151931; -webkit-text-stroke: 0px #ef7315}
+    span.s3 {font: 9.8px 'Lucida Grande'; font-kerning: none; background-color: #ef7315}
+    span.s4 {font-kerning: none; background-color: #ef7315}
+    span.s5 {font: 12.0px 'Helvetica Neue'; font-kerning: none; color: #e7edff; background-color: rgba(255, 255, 255, 0.051); -webkit-text-stroke: 0px #e7edff}
+    span.s6 {font: 9.8px 'STIX Two Math'; font-kerning: none; color: #88869d; background-color: #181c33; -webkit-text-stroke: 0px #88869d}
+    span.s7 {font-kerning: none; color: #88869d; background-color: #181c33; -webkit-text-stroke: 0px #88869d}
+    span.s8 {font: 9.8px 'Lucida Grande'; font-kerning: none; color: #88869d; background-color: rgba(255, 255, 255, 0.051); -webkit-text-stroke: 0px #88869d}
+    span.s9 {font-kerning: none; background-color: rgba(255, 255, 255, 0.051)}
+    span.s10 {font: 11.4px 'Helvetica Neue'; font-kerning: none; background-color: rgba(255, 255, 255, 0.051)}
+    span.s11 {font: 9.8px 'STIX Two Math'; font-kerning: none}
+    span.s12 {font-kerning: none}
+    span.s13 {font: 12.0px 'Helvetica Neue'; font-kerning: none; color: #e7edff; -webkit-text-stroke: 0px #e7edff}
+    span.s14 {font: 9.8px 'Hiragino Sans'; font-kerning: none}
+    span.s15 {font: 9.8px 'Apple Color Emoji'; font-kerning: none}
+    span.s16 {font-kerning: none; background-color: #0f1117}
+    span.s17 {font-kerning: none; color: #ef7315; -webkit-text-stroke: 0px #ef7315}
+    span.s18 {font: 13.8px 'Helvetica Neue'; font-kerning: none; color: #465274; -webkit-text-stroke: 0px #465274}
+    span.s19 {font: 16.2px 'Apple Color Emoji'; font-kerning: none}
+  </style>
 </head>
 <body>
-
-<div class="edit-banner">✏️ MODO EDICIÓN ACTIVO — Haz clic en cualquier línea para editarla</div>
-
-<!-- HEADER -->
-<header>
-  <div class="logo">MOMENTOS <span>▶</span> Betesda Media</div>
-  <div class="controls">
-    <div class="ctrl-group">
-      <button class="btn btn-start" id="btnPlay">▶ Iniciar</button>
-      <button class="btn btn-stop"  id="btnPause">⏸ Pausar</button>
-      <button class="btn btn-reset" id="btnReset">↩</button>
-    </div>
-    <div class="ctrl-group">
-      <span class="ctrl-label">Vel.</span>
-      <button class="icon-btn" id="sDown">−</button>
-      <span class="speed-val" id="speedVal">1.0</span>
-      <button class="icon-btn" id="sUp">+</button>
-    </div>
-    <div class="ctrl-group">
-      <span class="ctrl-label">Texto</span>
-      <button class="icon-btn" id="fDown">A−</button>
-      <button class="icon-btn" id="fUp">A+</button>
-    </div>
-    <button class="btn btn-fs"     id="btnFs">⛶ Pantalla completa</button>
-    <button class="btn btn-mirror" id="btnMirror">⇄ Espejo</button>
-    <button class="btn btn-edit"   id="btnEdit">✏️ Editar</button>
-    <button class="btn btn-remote" id="btnRemote">📱 Control remoto</button>
-  </div>
-</header>
-
-<div class="progress-bar" id="progressBar"></div>
-
-<!-- QR PANEL -->
-<div class="remote-panel" id="remotePanel">
-  <h3>Control remoto</h3>
-  <div class="room-code" id="roomCode">···</div>
-  <div id="qrcode"></div>
-  <p>Escanea el QR con tu iPhone<br>para abrir el control remoto</p>
-  <div class="remote-status" id="remotePanelStatus">Esperando conexión…</div>
-</div>
-
-<!-- LEYENDA -->
-<div class="legend">
-  <div class="legend-item"><div class="dot" style="background:var(--julian)"></div> Julián</div>
-  <div class="legend-item"><div class="dot" style="background:var(--fabiana)"></div> Fabiana</div>
-  <div class="legend-item"><div class="dot" style="background:var(--ambos)"></div> Ambos</div>
-</div>
-
-<!-- GUION -->
-<div id="script">
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Apertura</div><div class="section-title">Entrada al programa</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Hola, familia Betesda! ¿Cómo están todos hoy?</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡Bienvenidos a un nuevo episodio de <strong>Momentos</strong>, el noticiero que te cuenta todo lo que Dios hizo en nuestra iglesia este mes!</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Yo soy Julián…</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡Y yo soy Fabiana! Y hoy les traemos cuatro noticias increíbles. ¡Fue un mes lleno de la mano de Dios!</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Vamos con la primera noticia!</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Bloque 1</div><div class="section-title">Velada del Año</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Julián, ¿cómo describirías lo que vivieron los jóvenes en la <strong>Velada del Año</strong>?</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Como una experiencia que no se olvida! Los jóvenes vivieron una noche donde Dios habló directo al corazón.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Aprendieron que las heridas no sanan cuando las ocultamos. Tienen que ser expuestas para que Jesús las pueda sanar.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Que perdonar no es rendirse… ¡el perdón es el inicio de un proceso de sanidad! Y que Dios no quita nuestras batallas, nos enseña a lucharlas de su mano.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text"><em>(con convicción)</em> Estamos seguros de que Dios sana, perdona y restaura. ¡Y este evento fue el inicio de ese proceso para muchos jóvenes!</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Gracias, Señor, por una noche que cambió vidas!</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Bloque 2</div><div class="section-title">Festikids</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Y nosotros los niños también tuvimos nuestro momento este mes!</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡Así es! Vivimos el <strong>Festikids</strong>, un tiempo increíble donde aprendimos el valor que tenemos en Jesús.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">A través de la vida de diferentes personajes bíblicos, descubrimos cuán importantes somos para Dios.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡Y no solo aprendimos! También reímos, jugamos y nos divertimos muchísimo.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text"><em>(mirando a cámara)</em> Porque Dios nos ama, nos valora… ¡y tenemos un lugar muy especial en su corazón!</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡Fue una celebración para nuestra generación!</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Bloque 3</div><div class="section-title">Brigada Médica — Hacor</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Y hablando de cuidarnos… el ministerio de <strong>Hacor</strong> nos realizó una brigada médica donde cada uno de nosotros fue atendido y revisado con mucho cuidado.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Estas son esas manos diligentes que nos sirven, que nos aman y que siembran en nuestra generación.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Cuidar nuestra salud también es una forma de honrar la obra que Dios puso en nuestras vidas.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Gracias al ministerio de Hacor! Esas manos que nos sirven reflejan el corazón de Cristo.</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Bloque 4</div><div class="section-title">Día del Padre</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Y cerramos este mes con una celebración muy especial!</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡El <strong>Día del Padre</strong>! Este mes festejamos a cada papito de Betesda.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Elogiamos su esfuerzo, su amor, su cuidado y la fortaleza con la que guían a sus familias cada día.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Celebramos la vida de cada papá que se hace cargo, que no se rinde, que con fe lleva a su familia hacia Cristo.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Porque un papá que camina con Dios… es el mayor regalo que puede tener una familia.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text"><em>(con ternura)</em> Papás de Betesda, ¡los admiramos, los honramos y les damos gracias a Dios por cada uno de ustedes!</div></div>
-    <div class="line"><div class="speaker ambos">Ambos</div><div class="line-text">¡Feliz día, papás!</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Cierre</div><div class="section-title">Despedida</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Bueno familia Betesda, esas fueron las noticias de este mes en <strong>Momentos</strong>.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">La Velada del Año, el Festikids, la Brigada Médica de Hacor, y el Día del Padre. ¡Un mes que Dios usó para sanar, celebrar y fortalecer!</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Dios es fiel… y cada uno de estos momentos lo demuestra.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Nos vemos en el próximo episodio de Momentos…</div></div>
-    <div class="line"><div class="speaker ambos">Ambos</div><div class="line-text">¡Bendiciones para todos! 👋</div></div>
-  </div>
-
-  <footer>Betesda Media · Momentos · Guion de grabación</footer>
-</div>
-
-<!-- ══ REMOTE UI (iPhone) ══ -->
-<div class="remote-ui" id="remoteUi">
-
-  <!-- Top -->
-  <div class="r-topbar">
-    <div class="r-logo">MOMENTOS <span>▶</span> Control</div>
-    <div class="r-status" id="rStatus">Conectando…</div>
-  </div>
-
-  <!-- Ajustes: brillo y texto -->
-  <div class="r-adjusts">
-    <div class="r-adjust-card">
-      <button class="r-adj-btn" id="rBrDown">☀−</button>
-      <div><div class="r-adjust-label">Brillo</div><div class="r-adjust-val" id="rBrVal">100%</div></div>
-      <button class="r-adj-btn" id="rBrUp">☀+</button>
-    </div>
-    <div class="r-adjust-card">
-      <button class="r-adj-btn" id="rFtDown">A−</button>
-      <div><div class="r-adjust-label">Texto</div><div class="r-adjust-val" id="rFtVal">M</div></div>
-      <button class="r-adj-btn" id="rFtUp">A+</button>
-    </div>
-  </div>
-
-  <!-- Zona de deslizamiento -->
-  <div class="r-swipe-zone" id="rSwipeZone">
-    <div class="r-swipe-icon">↕</div>
-    <div class="r-swipe-label">Desliza para desplazar</div>
-  </div>
-
-  <!-- Navegación de bloques -->
-  <div class="r-blocks">
-    <button class="r-block-btn" id="rPrevBlock">← Bloque anterior</button>
-    <button class="r-block-btn" id="rNextBlock">Bloque siguiente →</button>
-  </div>
-
-  <!-- Play / Pausa / Reset -->
-  <div class="r-play-row">
-    <button class="r-main-btn r-btn-play"  id="rPlay">▶ INICIAR</button>
-    <button class="r-main-btn r-btn-pause" id="rPause">⏸ PAUSAR</button>
-    <button class="r-main-btn r-btn-reset" id="rReset">↩</button>
-  </div>
-
-  <!-- Velocidad -->
-  <div class="r-speed-row">
-    <button class="r-spd-btn" id="rSDown">−</button>
-    <div><div class="r-speed-label">Velocidad</div><div class="r-speed-val" id="rSpeedVal">1.0</div></div>
-    <button class="r-spd-btn" id="rSUp">+</button>
-  </div>
-
-</div>
-
-<script>
-/* ════════════════════════════════════════════
-   MODO DETECT
-════════════════════════════════════════════ */
-const params   = new URLSearchParams(window.location.search);
-const remoteId = params.get('remote');
-if (remoteId) {
-  document.body.classList.add('remote-mode');
-  initRemote(remoteId);
-} else {
-  initTeleprompter();
-}
-
-/* ════════════════════════════════════════════
-   TELEPROMPTER (iPad)
-════════════════════════════════════════════ */
-function initTeleprompter() {
-  const lines    = document.querySelectorAll('.line');
-  const sections = document.querySelectorAll('.section');
-  const bar      = document.getElementById('progressBar');
-  const speedEl  = document.getElementById('speedVal');
-  const scriptEl = document.getElementById('script');
-  let scrolling  = false;
-  let speed      = 1.0;
-  let fontSize   = 1.35;
-  let brightness = 1.0;
-  let mirrored   = false;
-  let editMode   = false;
-  let raf;
-  let peer, remotePeer;
-
-  /* — Velocidad — */
-  function setSpeed(v) {
-    speed = Math.min(4.0, Math.max(0.3, parseFloat(v.toFixed(1))));
-    speedEl.textContent = speed.toFixed(1);
-  }
-  document.getElementById('sDown').addEventListener('click', () => setSpeed(speed - 0.2));
-  document.getElementById('sUp').addEventListener('click',   () => setSpeed(speed + 0.2));
-
-  /* — Tamaño texto — */
-  function setFontSize(v) {
-    fontSize = Math.min(2.4, Math.max(0.9, parseFloat(v.toFixed(2))));
-    document.querySelectorAll('.line-text').forEach(el => el.style.fontSize = fontSize + 'rem');
-  }
-  document.getElementById('fUp').addEventListener('click',   () => setFontSize(fontSize + 0.1));
-  document.getElementById('fDown').addEventListener('click', () => setFontSize(fontSize - 0.1));
-
-  /* — Brillo — */
-  function setBrightness(v) {
-    brightness = Math.min(1.0, Math.max(0.2, parseFloat(v.toFixed(2))));
-    scriptEl.style.filter = brightness < 1.0 ? `brightness(${brightness})` : '';
-  }
-
-  /* — Pantalla completa — */
-  const btnFs = document.getElementById('btnFs');
-  btnFs.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen();
-    }
-  });
-  document.addEventListener('fullscreenchange', () => {
-    const full = !!document.fullscreenElement;
-    btnFs.textContent = full ? '✕ Salir pantalla completa' : '⛶ Pantalla completa';
-  });
-
-  /* — Espejo — */
-  document.getElementById('btnMirror').addEventListener('click', () => {
-    mirrored = !mirrored;
-    document.body.classList.toggle('mirror', mirrored);
-    document.getElementById('btnMirror').classList.toggle('active', mirrored);
-  });
-
-  /* — Edición — */
-  document.getElementById('btnEdit').addEventListener('click', () => {
-    editMode = !editMode;
-    document.body.classList.toggle('edit-mode', editMode);
-    document.getElementById('btnEdit').classList.toggle('active', editMode);
-    document.querySelectorAll('.line-text').forEach(el =>
-      editMode ? el.setAttribute('contenteditable','true') : el.removeAttribute('contenteditable')
-    );
-    if (editMode) { scrolling = false; cancelAnimationFrame(raf); }
-  });
-
-  /* — Scroll — */
-  function play()  { if (editMode) return; scrolling = true; cancelAnimationFrame(raf); raf = requestAnimationFrame(autoScroll); }
-  function pause() { scrolling = false; cancelAnimationFrame(raf); }
-  function reset() { pause(); window.scrollTo({ top:0, behavior:'smooth' }); bar.style.width='0%'; lines.forEach(l=>l.classList.remove('active')); }
-
-  function scrollDelta(delta) { window.scrollBy(0, delta); updateProgress(); highlightCurrent(); }
-
-  function goToBlock(dir) {
-    const current = window.scrollY + window.innerHeight * 0.3;
-    const sectionTops = Array.from(sections).map(s => s.getBoundingClientRect().top + window.scrollY);
-    if (dir === 'next') {
-      const next = sectionTops.find(t => t > current + 10);
-      if (next !== undefined) window.scrollTo({ top: next - 80, behavior: 'smooth' });
-    } else {
-      const prev = [...sectionTops].reverse().find(t => t < current - 10);
-      if (prev !== undefined) window.scrollTo({ top: prev - 80, behavior: 'smooth' });
-    }
-  }
-
-  function autoScroll() {
-    if (!scrolling) return;
-    window.scrollBy(0, speed * 0.8);
-    updateProgress(); highlightCurrent();
-    raf = requestAnimationFrame(autoScroll);
-  }
-  function updateProgress() {
-    const scrolled = window.scrollY;
-    const total = document.body.scrollHeight - window.innerHeight;
-    bar.style.width = (total > 0 ? (scrolled/total)*100 : 0) + '%';
-  }
-  function highlightCurrent() {
-    const mid = window.scrollY + window.innerHeight * 0.45;
-    let closest = null, closestDist = Infinity;
-    lines.forEach(line => {
-      const rect = line.getBoundingClientRect();
-      const lineCenter = window.scrollY + rect.top + rect.height / 2;
-      const dist = Math.abs(lineCenter - mid);
-      if (dist < closestDist) { closestDist = dist; closest = line; }
-    });
-    lines.forEach(l => l.classList.remove('active'));
-    if (closest) closest.classList.add('active');
-  }
-
-  document.getElementById('btnPlay').addEventListener('click', play);
-  document.getElementById('btnPause').addEventListener('click', pause);
-  document.getElementById('btnReset').addEventListener('click', reset);
-  window.addEventListener('scroll', updateProgress);
-
-  /* — Teclado — */
-  document.addEventListener('keydown', e => {
-    if (editMode) return;
-    if (e.code==='Space')     { e.preventDefault(); scrolling ? pause() : play(); }
-    if (e.code==='ArrowUp')   setSpeed(speed - 0.2);
-    if (e.code==='ArrowDown') setSpeed(speed + 0.2);
-  });
-
-  /* — Control Remoto PeerJS — */
-  const btnRemote   = document.getElementById('btnRemote');
-  const remotePanel = document.getElementById('remotePanel');
-  const roomCodeEl  = document.getElementById('roomCode');
-  const panelStatus = document.getElementById('remotePanelStatus');
-  let panelOpen = false, qrGenerated = false;
-
-  btnRemote.addEventListener('click', () => {
-    panelOpen = !panelOpen;
-    remotePanel.classList.toggle('visible', panelOpen);
-    btnRemote.classList.toggle('active', panelOpen);
-    if (panelOpen && !peer) initPeer();
-  });
-
-  function initPeer() {
-    const code = Math.random().toString(36).substring(2,6).toUpperCase();
-    const peerId = 'btsd-tp-' + code;
-    roomCodeEl.textContent = code;
-    peer = new Peer(peerId);
-    peer.on('open', () => {
-      if (!qrGenerated) {
-        const base = window.location.href.split('?')[0];
-        new QRCode(document.getElementById('qrcode'), {
-          text: base + '?remote=' + peerId,
-          width: 160, height: 160,
-          colorDark: '#ffffff', colorLight: '#1a2035',
-          correctLevel: QRCode.CorrectLevel.M
-        });
-        qrGenerated = true;
-      }
-    });
-    peer.on('connection', conn => {
-      remotePeer = conn;
-      panelStatus.textContent = '✓ iPhone conectado';
-      panelStatus.classList.add('connected');
-      conn.on('data', data => {
-        if (data.cmd === 'play')       play();
-        if (data.cmd === 'pause')      pause();
-        if (data.cmd === 'reset')      reset();
-        if (data.cmd === 'speed')      setSpeed(data.value);
-        if (data.cmd === 'fontSize')   setFontSize(fontSize + (data.dir === 'up' ? 0.1 : -0.1));
-        if (data.cmd === 'brightness') setBrightness(brightness + (data.dir === 'up' ? 0.1 : -0.1));
-        if (data.cmd === 'scroll')     scrollDelta(data.delta);
-        if (data.cmd === 'block')      goToBlock(data.dir);
-      });
-      conn.on('close', () => {
-        panelStatus.textContent = 'Desconectado';
-        panelStatus.classList.remove('connected');
-      });
-    });
-    peer.on('error', err => { panelStatus.textContent = 'Error: ' + err.type; });
-  }
-}
-
-/* ════════════════════════════════════════════
-   REMOTO (iPhone)
-════════════════════════════════════════════ */
-function initRemote(peerId) {
-  const rStatus   = document.getElementById('rStatus');
-  const rSpeedVal = document.getElementById('rSpeedVal');
-  const rBrVal    = document.getElementById('rBrVal');
-  const rFtVal    = document.getElementById('rFtVal');
-  let conn;
-  let remoteSpeed = 1.0;
-  let brightness  = 1.0;
-  let fontStep    = 3; // 1-5 escala visual
-  const fontLabels = ['XS','S','M','L','XL'];
-
-  const peer = new Peer();
-  peer.on('open', () => {
-    rStatus.textContent = 'Conectando…';
-    conn = peer.connect(peerId);
-    conn.on('open',  () => { rStatus.textContent = '✓ Conectado'; rStatus.classList.add('connected'); });
-    conn.on('close', () => { rStatus.textContent = 'Desconectado'; rStatus.classList.remove('connected'); });
-  });
-  peer.on('error', () => { rStatus.textContent = 'Sin conexión'; });
-
-  function send(data) { if (conn && conn.open) conn.send(data); }
-
-  /* Botones principales */
-  document.getElementById('rPlay').addEventListener('click',  () => send({ cmd:'play' }));
-  document.getElementById('rPause').addEventListener('click', () => send({ cmd:'pause' }));
-  document.getElementById('rReset').addEventListener('click', () => send({ cmd:'reset' }));
-
-  /* Velocidad */
-  document.getElementById('rSDown').addEventListener('click', () => {
-    remoteSpeed = Math.max(0.3, parseFloat((remoteSpeed-0.2).toFixed(1)));
-    rSpeedVal.textContent = remoteSpeed.toFixed(1);
-    send({ cmd:'speed', value: remoteSpeed });
-  });
-  document.getElementById('rSUp').addEventListener('click', () => {
-    remoteSpeed = Math.min(4.0, parseFloat((remoteSpeed+0.2).toFixed(1)));
-    rSpeedVal.textContent = remoteSpeed.toFixed(1);
-    send({ cmd:'speed', value: remoteSpeed });
-  });
-
-  /* Brillo */
-  document.getElementById('rBrDown').addEventListener('click', () => {
-    brightness = Math.max(0.2, parseFloat((brightness-0.1).toFixed(1)));
-    rBrVal.textContent = Math.round(brightness*100) + '%';
-    send({ cmd:'brightness', dir:'down' });
-  });
-  document.getElementById('rBrUp').addEventListener('click', () => {
-    brightness = Math.min(1.0, parseFloat((brightness+0.1).toFixed(1)));
-    rBrVal.textContent = Math.round(brightness*100) + '%';
-    send({ cmd:'brightness', dir:'up' });
-  });
-
-  /* Tamaño texto */
-  document.getElementById('rFtDown').addEventListener('click', () => {
-    fontStep = Math.max(0, fontStep-1);
-    rFtVal.textContent = fontLabels[fontStep];
-    send({ cmd:'fontSize', dir:'down' });
-  });
-  document.getElementById('rFtUp').addEventListener('click', () => {
-    fontStep = Math.min(4, fontStep+1);
-    rFtVal.textContent = fontLabels[fontStep];
-    send({ cmd:'fontSize', dir:'up' });
-  });
-
-  /* Bloques */
-  document.getElementById('rPrevBlock').addEventListener('click', () => send({ cmd:'block', dir:'prev' }));
-  document.getElementById('rNextBlock').addEventListener('click', () => send({ cmd:'block', dir:'next' }));
-
-  /* ── ZONA DE DESLIZAMIENTO (touch = scroll directo en iPad) ── */
-  const swipeZone = document.getElementById('rSwipeZone');
-  let lastY = null;
-  let velocity = 0;
-  let momentumRaf;
-
-  function spawnRipple(x, y) {
-    const ripple = document.createElement('div');
-    ripple.className = 'r-swipe-ripple';
-    ripple.style.left = x + 'px';
-    ripple.style.top  = y + 'px';
-    swipeZone.appendChild(ripple);
-    requestAnimationFrame(() => ripple.classList.add('go'));
-    setTimeout(() => ripple.remove(), 700);
-  }
-
-  swipeZone.addEventListener('touchstart', e => {
-    cancelAnimationFrame(momentumRaf);
-    lastY = e.touches[0].clientY;
-    velocity = 0;
-    const rect = swipeZone.getBoundingClientRect();
-    spawnRipple(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
-    e.preventDefault();
-  }, { passive: false });
-
-  swipeZone.addEventListener('touchmove', e => {
-    if (lastY === null) return;
-    const currentY = e.touches[0].clientY;
-    const delta = (lastY - currentY) * 2.5; // invertido y amplificado
-    velocity = delta;
-    send({ cmd:'scroll', delta });
-    lastY = currentY;
-    e.preventDefault();
-  }, { passive: false });
-
-  swipeZone.addEventListener('touchend', () => {
-    // Momentum: continúa enviando scroll con velocidad decreciente
-    function momentum() {
-      if (Math.abs(velocity) < 0.5) { lastY = null; return; }
-      send({ cmd:'scroll', delta: velocity });
-      velocity *= 0.92;
-      momentumRaf = requestAnimationFrame(momentum);
-    }
-    momentum();
-  });
-
-  /* Tap simple = play/pause toggle */
-  let touchMoved = false;
-  swipeZone.addEventListener('touchstart', () => { touchMoved = false; });
-  swipeZone.addEventListener('touchmove',  () => { touchMoved = true; });
-  swipeZone.addEventListener('touchend', e => {
-    if (!touchMoved) {
-      // tap sin movimiento = toggle play/pause
-      send({ cmd: 'play' }); // el iPad manejará el toggle con la lógica interna
-    }
-  });
-}
-</script>
+<p class="p1"><span class="s1">MOMENTOS </span><span class="s2">▶</span><span class="s1"> Betesda Media</span></p>
+<p class="p2"><span class="s3">▶</span><span class="s4"> Iniciar</span><span class="s5"> </span><span class="s6">⏸</span><span class="s7"> Pausar</span><span class="s5"> </span><span class="s8">↩</span></p>
+<p class="p3"><span class="s9">VEL.</span></p>
+<p class="p4"><span class="s9">−</span></p>
+<p class="p5"><span class="s9">1.0</span></p>
+<p class="p4"><span class="s9">+</span></p>
+<p class="p3"><span class="s9">TEXTO</span></p>
+<p class="p6"><span class="s10">A−</span><span class="s5"> </span><span class="s10">A+</span><span class="s5"> </span><span class="s11">⛶</span><span class="s12"> Pantalla completa</span><span class="s13"> </span><span class="s14">⇄</span><span class="s12"> Espejo</span><span class="s13"> </span><span class="s15">✏️</span><span class="s12"> Editar</span><span class="s13"> </span><span class="s15">📱</span><span class="s12"> Control remoto</span></p>
+<p class="p7"><span class="s12"></span><br></p>
+<p class="p8"><span class="s12"></span><br></p>
+<p class="p9"><span class="s12">Julián</span></p>
+<p class="p10"><span class="s12"></span><br></p>
+<p class="p9"><span class="s12">Fabiana</span></p>
+<p class="p11"><span class="s12"></span><br></p>
+<p class="p12"><span class="s16">Ambos</span></p>
+<p class="p13"><span class="s12">APERTURA</span></p>
+<p class="p14"><span class="s12">Entrada al programa <span class="Apple-converted-space"> </span></span></p>
+<p class="p15"><span class="s12"></span><br></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">¡Hola, familia Betesda! ¿Cómo están todos hoy?</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">¡Bienvenidos a un nuevo episodio de </span><span class="s17">Momentos</span><span class="s12">, el noticiero que te cuenta todo lo que Dios hizo en nuestra iglesia este mes!</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">Yo soy Julián…</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">¡Y yo soy Fabiana! Y hoy les traemos cuatro noticias increíbles. ¡Fue un mes lleno de la mano de Dios!</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">¡Vamos con la primera noticia!</span></p>
+<p class="p13"><span class="s12">BLOQUE 1</span></p>
+<p class="p14"><span class="s12">Velada del Año</span></p>
+<p class="p15"><span class="s12"></span><br></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">Julián, ¿cómo describirías lo que vivieron los jóvenes en la </span><span class="s17">Velada del Año</span><span class="s12">?</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">¡Como una experiencia que no se olvida! Los jóvenes vivieron una noche donde Dios habló directo al corazón.</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">Aprendieron que las heridas no sanan cuando las ocultamos. Tienen que ser expuestas para que Jesús las pueda sanar.</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">Que perdonar no es rendirse… ¡el perdón es el inicio de un proceso de sanidad! Y que Dios no quita nuestras batallas, nos enseña a lucharlas de su mano.</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s18">(con convicción)</span><span class="s12"> Estamos seguros de que Dios sana, perdona y restaura. ¡Y este evento fue el inicio de ese proceso para muchos jóvenes!</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">¡Gracias, Señor, por una noche que cambió vidas!</span></p>
+<p class="p13"><span class="s12">BLOQUE 2</span></p>
+<p class="p14"><span class="s12">Festikids</span></p>
+<p class="p15"><span class="s12"></span><br></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">¡Y nosotros los niños también tuvimos nuestro momento este mes!</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">¡Así es! Vivimos el </span><span class="s17">Festikids</span><span class="s12">, un tiempo increíble donde aprendimos el valor que tenemos en Jesús.</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">A través de la vida de diferentes personajes bíblicos, descubrimos cuán importantes somos para Dios.</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">¡Y no solo aprendimos! También reímos, jugamos y nos divertimos muchísimo.</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s18">(mirando a cámara)</span><span class="s12"> Porque Dios nos ama, nos valora… ¡y tenemos un lugar muy especial en su corazón!</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">¡Fue una celebración para nuestra generación!</span></p>
+<p class="p13"><span class="s12">BLOQUE 3</span></p>
+<p class="p14"><span class="s12">Brigada Médica — Hacor</span></p>
+<p class="p15"><span class="s12"></span><br></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">Y hablando de cuidarnos… el ministerio de </span><span class="s17">Hacor</span><span class="s12"> nos realizó una brigada médica donde cada uno de nosotros fue atendido y revisado con mucho cuidado.</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">Estas son esas manos diligentes que nos sirven, que nos aman y que siembran en nuestra generación.</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">Cuidar nuestra salud también es una forma de honrar la obra que Dios puso en nuestras vidas.</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">¡Gracias al ministerio de Hacor! Esas manos que nos sirven reflejan el corazón de Cristo.</span></p>
+<p class="p13"><span class="s12">BLOQUE 4</span></p>
+<p class="p14"><span class="s12">Día del Padre</span></p>
+<p class="p15"><span class="s12"></span><br></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">¡Y cerramos este mes con una celebración muy especial!</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">¡El </span><span class="s17">Día del Padre</span><span class="s12">! Este mes festejamos a cada papito de Betesda.</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">Elogiamos su esfuerzo, su amor, su cuidado y la fortaleza con la que guían a sus familias cada día.</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">Celebramos la vida de cada papá que se hace cargo, que no se rinde, que con fe lleva a su familia hacia Cristo.</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">Porque un papá que camina con Dios… es el mayor regalo que puede tener una familia.</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s18">(con ternura)</span><span class="s12"> Papás de Betesda, ¡los admiramos, los honramos y les damos gracias a Dios por cada uno de ustedes!</span></p>
+<p class="p19"><span class="s12">AMBOS</span></p>
+<p class="p17"><span class="s12">¡Feliz día, papás!</span></p>
+<p class="p13"><span class="s12">CIERRE</span></p>
+<p class="p14"><span class="s12">Despedida</span></p>
+<p class="p15"><span class="s12"></span><br></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">Bueno familia Betesda, esas fueron las noticias de este mes en </span><span class="s17">Momentos</span><span class="s12">.</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">La Velada del Año, el Festikids, la Brigada Médica de Hacor, y el Día del Padre. ¡Un mes que Dios usó para sanar, celebrar y fortalecer!</span></p>
+<p class="p16"><span class="s12">JULIÁN</span></p>
+<p class="p17"><span class="s12">Dios es fiel… y cada uno de estos momentos lo demuestra.</span></p>
+<p class="p18"><span class="s12">FABIANA</span></p>
+<p class="p17"><span class="s12">Nos vemos en el próximo episodio de Momentos…</span></p>
+<p class="p19"><span class="s12">AMBOS</span></p>
+<p class="p17"><span class="s12">¡Bendiciones para todos! </span><span class="s19">👋</span></p>
+<p class="p20"><span class="s12">Betesda Media · Momentos · Guion de grabación</span></p>
 </body>
 </html>
