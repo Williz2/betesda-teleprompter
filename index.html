@@ -12,9 +12,6 @@
   :root {
     --azul: #233052;
     --naranja: #f8991d;
-    --julian: #5bc4f5;
-    --fabiana: #f87db0;
-    --ambos: #f8991d;
     --bg: #0d1117;
     --surface: #161c28;
     --text: #f0f4ff;
@@ -66,6 +63,7 @@
   .btn-fs     { background: transparent; border: 1px solid #2a3555; color: #aab; }
   .btn-remote { background: transparent; border: 1px solid #2a3555; color: #aab; }
   .btn-remote.active { border-color: #34d399; color: #34d399; background: rgba(52,211,153,.1); }
+  .btn-presenters { background: transparent; border: 1px solid #2a3555; color: #aab; }
 
   /* ── PROGRESS BAR ── */
   .progress-bar {
@@ -84,17 +82,89 @@
     background: rgba(74,222,128,.12); border-bottom: 1px solid #4ade80;
     color: #4ade80; text-align: center;
     font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
-    padding: 5px; z-index: 98;
+    padding: 6px; z-index: 98;
   }
   body.edit-mode .edit-banner { display: block; }
-  body.edit-mode .line-text[contenteditable="true"] {
-    outline: 1px dashed rgba(74,222,128,.3); border-radius: 4px; padding: 2px 6px; cursor: text;
+  .edit-banner-actions {
+    display: none; justify-content: center; gap: 8px; margin-top: 5px; flex-wrap: wrap;
   }
-  body.edit-mode .line-text[contenteditable="true"]:focus {
-    outline: 1px solid #4ade80; background: rgba(74,222,128,.05);
+  body.edit-mode .edit-banner-actions { display: flex; }
+  .edit-banner-btn {
+    background: rgba(74,222,128,.15); border: 1px solid #4ade80; color: #4ade80;
+    padding: 3px 12px; border-radius: 6px; font-size: 0.68rem; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .edit-banner-btn:hover { background: rgba(74,222,128,.28); }
+
+  /* ── SPEAKER SELECT (presentador por línea) ── */
+  .speaker-select {
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    border: none; background: transparent; font: inherit;
+    font-size: 0.78rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase;
+    text-align: right; text-align-last: right; padding-top: 3px;
+    width: 100%; pointer-events: none; cursor: default;
+  }
+  body.edit-mode .speaker-select {
+    pointer-events: auto; cursor: pointer;
+    border-bottom: 1px dashed currentColor; padding-bottom: 2px;
   }
 
-  /* ── REMOTE PANEL QR ── */
+  /* ── PANEL DE CÓDIGO / PRESENTADORES (overlay) ── */
+  .code-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.7); z-index: 500;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .code-overlay.visible { display: flex; }
+  .code-panel {
+    background: #161c28; border: 1px solid #2a3555; border-radius: 14px;
+    padding: 24px; max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  .code-panel h3 { color: #4ade80; font-size: 0.95rem; margin-bottom: 10px; }
+  .code-panel p { color: #8899bb; font-size: 0.8rem; margin-bottom: 12px; line-height: 1.5; }
+  .code-panel textarea {
+    width: 100%; height: 110px; background: #0d1117; border: 1px solid #2a3555;
+    border-radius: 8px; color: #f0f4ff; font-family: monospace; font-size: 0.7rem;
+    padding: 10px; resize: none; margin-bottom: 14px;
+  }
+  .code-panel-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .code-panel-btn {
+    padding: 8px 16px; border-radius: 8px; border: none;
+    font-family: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+  }
+  .code-panel-btn.primary { background: var(--naranja); color: #fff; }
+  .code-panel-btn.secondary { background: transparent; border: 1px solid #2a3555; color: #aab; }
+  .save-toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(120px);
+    background: #4ade80; color: #0d1117; padding: 10px 20px; border-radius: 30px;
+    font-weight: 700; font-size: 0.85rem; z-index: 600;
+    transition: transform .3s ease;
+  }
+  .save-toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Fila de presentador dentro del panel */
+  .presenter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .presenter-color {
+    width: 36px; height: 36px; border: none; border-radius: 8px;
+    background: none; cursor: pointer; padding: 0; flex-shrink: 0;
+  }
+  .presenter-name {
+    flex: 1; background: #0d1117; border: 1px solid #2a3555; border-radius: 6px;
+    color: #fff; padding: 8px 10px; font-family: inherit; font-size: 0.85rem;
+  }
+  .presenter-remove {
+    background: transparent; border: 1px solid #ef4444; color: #ef4444;
+    border-radius: 6px; padding: 7px 10px; cursor: pointer; font-size: 0.85rem; flex-shrink: 0;
+  }
+  .add-presenter-btn {
+    width: 100%; margin-bottom: 16px; background: rgba(248,153,29,.12);
+    border: 1px dashed var(--naranja); color: var(--naranja);
+    padding: 10px; border-radius: 8px; font-family: inherit; font-weight: 700;
+    font-size: 0.82rem; cursor: pointer;
+  }
+
+  /* ── PANEL QR (control remoto) ── */
   .remote-panel {
     display: none; position: fixed; top: 70px; right: 20px;
     background: #1a2035; border: 1px solid #2a3555;
@@ -115,7 +185,7 @@
   }
   .remote-status.connected { background: rgba(52,211,153,.15); color: #34d399; }
 
-  /* ── LEGEND ── */
+  /* ── LEYENDA ── */
   .legend {
     position: fixed; bottom: 20px; right: 20px;
     background: var(--surface); border: 1px solid #2a3048;
@@ -125,7 +195,7 @@
   .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #aab; }
   .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 
-  /* ── SCRIPT AREA ── */
+  /* ── ÁREA DE GUION ── */
   #script {
     margin-top: 72px; padding: 40px 20px 120px;
     max-width: 860px; margin-left: auto; margin-right: auto;
@@ -147,10 +217,6 @@
     border-bottom: 1px solid #1c2236; align-items: start;
   }
   .line:last-child { border-bottom: none; }
-  .speaker { font-size: 0.78rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; padding-top: 3px; text-align: right; }
-  .speaker.julian  { color: var(--julian); }
-  .speaker.fabiana { color: var(--fabiana); }
-  .speaker.ambos   { color: var(--ambos); }
   .line-text { font-size: 1.35rem; line-height: 1.6; color: var(--text); }
   .line-text em { font-style: normal; color: var(--muted); font-size: 0.85em; }
   .line-text strong { color: var(--naranja); font-weight: 700; }
@@ -158,9 +224,15 @@
     color: #fff; background: rgba(248,153,29,.07);
     border-radius: 6px; padding: 4px 8px; margin: -4px -8px;
   }
+  body.edit-mode .line-text[contenteditable="true"] {
+    outline: 1px dashed rgba(74,222,128,.3); border-radius: 4px; padding: 2px 6px; cursor: text;
+  }
+  body.edit-mode .line-text[contenteditable="true"]:focus {
+    outline: 1px solid #4ade80; background: rgba(74,222,128,.05);
+  }
   footer { text-align: center; padding: 16px; color: var(--muted); font-size: 0.75rem; }
 
-  /* ── MODO INMERSIVO (pantalla completa limpia) ── */
+  /* ── MODO INMERSIVO (pantalla completa limpia, mantiene nombres) ── */
   body.immersive header,
   body.immersive .progress-bar,
   body.immersive .legend { display: none !important; }
@@ -170,10 +242,7 @@
   /* ══════════════════════════════════════════
      MODO REMOTO — iPhone UI
   ══════════════════════════════════════════ */
-  body.remote-mode {
-    overflow: hidden; height: 100vh; height: 100dvh;
-    background: #0a0e1a;
-  }
+  body.remote-mode { overflow: hidden; height: 100vh; height: 100dvh; background: #0a0e1a; }
   body.remote-mode header,
   body.remote-mode #script,
   body.remote-mode .legend,
@@ -181,20 +250,14 @@
   body.remote-mode .edit-banner { display: none !important; }
 
   .remote-ui {
-    display: none;
-    flex-direction: column;
+    display: none; flex-direction: column;
     height: 100vh; height: 100dvh; width: 100%;
     padding: 12px 16px calc(env(safe-area-inset-bottom, 12px) + 14px);
-    gap: 8px;
-    overflow: hidden;
+    gap: 8px; overflow: hidden;
   }
   body.remote-mode .remote-ui { display: flex; }
 
-  /* — Top bar — */
-  .r-topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    flex-shrink: 0;
-  }
+  .r-topbar { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .r-logo { font-size: 0.85rem; font-weight: 900; color: #fff; letter-spacing: 0.08em; }
   .r-logo span { color: var(--naranja); }
   .r-status {
@@ -203,11 +266,7 @@
   }
   .r-status.connected { background: rgba(52,211,153,.15); color: #34d399; }
 
-  /* — Ajustes fila — */
-  .r-adjusts {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 8px; flex-shrink: 0;
-  }
+  .r-adjusts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
   .r-adjust-card {
     background: #161c28; border: 1px solid #2a3555; border-radius: 12px;
     padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -215,101 +274,64 @@
   .r-adjust-label { font-size: 0.65rem; color: #6b7a99; text-transform: uppercase; letter-spacing: 0.07em; }
   .r-adjust-val { font-size: 1rem; font-weight: 900; color: #fff; min-width: 32px; text-align: center; }
   .r-adj-btn {
-    width: 34px; height: 34px; border-radius: 8px;
-    border: 1px solid #2a3555; background: transparent;
-    color: #aab; font-size: 1.1rem; font-weight: 700;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-family: inherit; user-select: none;
-    -webkit-user-select: none;
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid #2a3555; background: transparent;
+    color: #aab; font-size: 1.1rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-family: inherit;
   }
   .r-adj-btn:active { background: rgba(248,153,29,.15); border-color: var(--naranja); color: var(--naranja); }
 
-  /* — Zona de deslizamiento — */
   .r-swipe-zone {
-    flex: 1;
-    background: #0f1520;
-    border: 1.5px dashed #2a3555;
-    border-radius: 20px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 12px;
-    cursor: grab; user-select: none; -webkit-user-select: none;
-    touch-action: none;
-    position: relative;
-    overflow: hidden;
-    min-height: 0;
+    flex: 1; background: #0f1520; border: 1.5px dashed #2a3555; border-radius: 20px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    cursor: grab; touch-action: none; position: relative; overflow: hidden; min-height: 0;
   }
   .r-swipe-zone:active { cursor: grabbing; border-color: var(--naranja); }
   .r-swipe-icon { font-size: 2.2rem; opacity: 0.25; pointer-events: none; }
   .r-swipe-label { font-size: 0.7rem; color: #3a4565; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; pointer-events: none; }
   .r-swipe-ripple {
-    position: absolute; border-radius: 50%;
-    background: rgba(248,153,29,.2);
-    pointer-events: none;
-    transform: scale(0); opacity: 1;
-    transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+    position: absolute; border-radius: 50%; background: rgba(248,153,29,.2); pointer-events: none;
+    transform: scale(0); opacity: 1; transition: transform 0.6s ease-out, opacity 0.6s ease-out;
     width: 80px; height: 80px; margin-left: -40px; margin-top: -40px;
   }
   .r-swipe-ripple.go { transform: scale(4); opacity: 0; }
 
-  /* — Bloques nav — */
-  .r-blocks {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 8px; flex-shrink: 0;
-  }
+  .r-blocks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
   .r-block-btn {
-    padding: 12px 10px; border-radius: 12px;
-    border: 1px solid #2a3555; background: #161c28;
+    padding: 12px 10px; border-radius: 12px; border: 1px solid #2a3555; background: #161c28;
     color: #aab; font-family: inherit; font-size: 0.78rem; font-weight: 700;
     cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-    user-select: none; -webkit-user-select: none;
   }
   .r-block-btn:active { background: rgba(248,153,29,.1); border-color: var(--naranja); color: var(--naranja); }
 
-  /* — Play row — */
-  .r-play-row {
-    display: grid; grid-template-columns: 1fr 1fr 80px;
-    gap: 8px; flex-shrink: 0;
-  }
+  .r-play-row { display: grid; grid-template-columns: 1fr 1fr 80px; gap: 8px; flex-shrink: 0; }
   .r-main-btn {
     padding: 18px 10px; border: none; border-radius: 14px;
-    font-family: inherit; font-size: 1rem; font-weight: 900;
-    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-    user-select: none; -webkit-user-select: none;
+    font-family: inherit; font-size: 1rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
   }
   .r-main-btn:active { opacity: 0.8; transform: scale(0.97); }
   .r-btn-play  { background: var(--naranja); color: #fff; }
   .r-btn-pause { background: #2a3555; color: #ccd; }
   .r-btn-reset { background: transparent; border: 1px solid #2a3555; color: #6b7a99; font-size: 0.85rem; }
 
-  /* — Speed row — */
   .r-speed-row {
     background: #161c28; border: 1px solid #2a3555; border-radius: 12px;
-    padding: 10px 16px; display: flex; align-items: center;
-    justify-content: space-between; gap: 10px; flex-shrink: 0;
+    padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0;
   }
   .r-speed-label { font-size: 0.65rem; color: #6b7a99; text-transform: uppercase; letter-spacing: 0.07em; }
   .r-speed-val { font-size: 1.1rem; font-weight: 900; color: #fff; min-width: 36px; text-align: center; }
   .r-spd-btn {
-    width: 40px; height: 40px; border-radius: 10px;
-    border: 1px solid #2a3555; background: transparent;
-    color: #aab; font-size: 1.3rem; font-weight: 700;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-family: inherit; user-select: none; -webkit-user-select: none;
+    width: 40px; height: 40px; border-radius: 10px; border: 1px solid #2a3555; background: transparent;
+    color: #aab; font-size: 1.3rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-family: inherit;
   }
   .r-spd-btn:active { background: rgba(248,153,29,.15); border-color: var(--naranja); color: var(--naranja); }
 
-  /* — Herramientas extra (pantalla completa / espejo / editar) — */
-  .r-tools {
-    display: grid; grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px; flex-shrink: 0;
-  }
+  .r-tools { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; flex-shrink: 0; }
   .r-tool-btn {
-    padding: 12px 6px; border-radius: 12px;
-    border: 1px solid #2a3555; background: #161c28;
+    padding: 12px 6px; border-radius: 12px; border: 1px solid #2a3555; background: #161c28;
     color: #aab; font-family: inherit; font-size: 0.68rem; font-weight: 700;
     cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-    user-select: none; -webkit-user-select: none;
   }
   .r-tool-btn .r-tool-icon { font-size: 1.15rem; }
   .r-tool-btn:active { background: rgba(248,153,29,.1); }
@@ -318,9 +340,58 @@
 </head>
 <body>
 
-<div class="edit-banner">✏️ MODO EDICIÓN ACTIVO — Haz clic en cualquier línea para editarla</div>
+<!-- BANNER DE EDICIÓN -->
+<div class="edit-banner">
+  ✏️ MODO EDICIÓN ACTIVO — Toca una línea para editar el texto, o el nombre del presentador para reasignar
+  <div class="edit-banner-actions">
+    <button class="edit-banner-btn" id="btnSaveScript">💾 Guardar y generar código</button>
+    <button class="edit-banner-btn" id="btnLoadScript">📥 Cargar código</button>
+    <button class="edit-banner-btn" id="btnOpenPresenters">👥 Presentadores</button>
+  </div>
+</div>
 
-<!-- HEADER -->
+<!-- PANEL: GUARDAR -->
+<div class="code-overlay" id="saveOverlay">
+  <div class="code-panel">
+    <h3>💾 Código de respaldo generado</h3>
+    <p>Copia este código y pégalo en cualquier otro equipo (botón "Cargar código") para que tenga exactamente este mismo guion, con tus ediciones y presentadores. También quedó guardado automáticamente en este dispositivo.</p>
+    <textarea id="saveCodeText" readonly></textarea>
+    <div class="code-panel-actions">
+      <button class="code-panel-btn secondary" id="closeSaveOverlay">Cerrar</button>
+      <button class="code-panel-btn primary" id="copySaveCode">Copiar código</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL: CARGAR -->
+<div class="code-overlay" id="loadOverlay">
+  <div class="code-panel">
+    <h3>📥 Cargar código de respaldo</h3>
+    <p>Pega aquí el código que generaste y copiaste desde otro equipo.</p>
+    <textarea id="loadCodeText" placeholder="Pega el código aquí..."></textarea>
+    <div class="code-panel-actions">
+      <button class="code-panel-btn secondary" id="closeLoadOverlay">Cancelar</button>
+      <button class="code-panel-btn primary" id="applyLoadCode">Cargar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL: PRESENTADORES -->
+<div class="code-overlay" id="presentersOverlay">
+  <div class="code-panel">
+    <h3>👥 Presentadores</h3>
+    <p>Edita el nombre y color de cada presentador, agrega nuevos o elimínalos. Los cambios se aplican a todo el guion.</p>
+    <div id="presentersList"></div>
+    <button class="add-presenter-btn" id="addPresenterBtn">+ Agregar presentador</button>
+    <div class="code-panel-actions">
+      <button class="code-panel-btn primary" id="closePresentersOverlay">Listo</button>
+    </div>
+  </div>
+</div>
+
+<div class="save-toast" id="saveToast">✓ Guardado en este equipo</div>
+
+<!-- HEADER (teleprompter) -->
 <header>
   <div class="logo">MOMENTOS <span>▶</span> Junio 2026</div>
   <div class="controls">
@@ -340,10 +411,11 @@
       <button class="icon-btn" id="fDown">A−</button>
       <button class="icon-btn" id="fUp">A+</button>
     </div>
-    <button class="btn btn-fs"     id="btnFs">⛶ Pantalla completa</button>
-    <button class="btn btn-mirror" id="btnMirror">⇄ Espejo</button>
-    <button class="btn btn-edit"   id="btnEdit">✏️ Editar</button>
-    <button class="btn btn-remote" id="btnRemote">📱 Control remoto</button>
+    <button class="btn btn-fs"         id="btnFs">⛶ Pantalla completa</button>
+    <button class="btn btn-mirror"     id="btnMirror">⇄ Espejo</button>
+    <button class="btn btn-edit"       id="btnEdit">✏️ Editar</button>
+    <button class="btn btn-presenters" id="btnPresentersHeader">👥 Presentadores</button>
+    <button class="btn btn-remote"     id="btnRemote">📱 Control remoto</button>
   </div>
 </header>
 
@@ -358,71 +430,67 @@
   <div class="remote-status" id="remotePanelStatus">Esperando conexión…</div>
 </div>
 
-<!-- LEYENDA -->
-<div class="legend">
-  <div class="legend-item"><div class="dot" style="background:var(--julian)"></div> Julián</div>
-  <div class="legend-item"><div class="dot" style="background:var(--fabiana)"></div> Fabiana</div>
-  <div class="legend-item"><div class="dot" style="background:var(--ambos)"></div> Ambos</div>
-</div>
+<!-- LEYENDA (se rellena dinámicamente por JS) -->
+<div class="legend" id="legend"></div>
 
 <!-- GUION -->
 <div id="script">
 
   <div class="section">
     <div class="section-header"><div class="section-tag">Apertura</div><div class="section-title">Entrada al programa</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Hola, familia Betesda! ¿Cómo están todos hoy?</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡Bienvenidos a un nuevo episodio de <strong>Momentos</strong>, el noticiero que te cuenta todo lo que Dios hizo en nuestra iglesia este mes!</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Yo soy Julián…</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡Y yo soy Fabiana! Y hoy les traemos cuatro noticias increíbles. ¡Fue un mes lleno de la mano de Dios!</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Vamos con la primera noticia!</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Hola, familia Betesda! ¿Cómo están todos hoy?</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡Bienvenidos a un nuevo episodio de <strong>Momentos</strong>, el noticiero que te cuenta todo lo que Dios hizo en nuestra iglesia este mes!</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Yo soy Julián…</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡Y yo soy Fabiana! Y hoy les traemos cuatro noticias increíbles. ¡Fue un mes lleno de la mano de Dios!</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Vamos con la primera noticia!</div></div>
   </div>
 
   <div class="section">
     <div class="section-header"><div class="section-tag">Bloque 1</div><div class="section-title">Velada del Año</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Julián, ¿cómo describirías lo que vivieron los jóvenes en la <strong>Velada del Año</strong>?</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Como una experiencia que no se olvida! Los jóvenes vivieron una noche donde Dios habló directo al corazón.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Aprendieron que las heridas no sanan cuando las ocultamos. Tienen que ser expuestas para que Jesús las pueda sanar.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Que perdonar no es rendirse… ¡el perdón es el inicio de un proceso de sanidad! Y que Dios no quita nuestras batallas, nos enseña a lucharlas de su mano.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text"><em>(con convicción)</em> Estamos seguros de que Dios sana, perdona y restaura. ¡Y este evento fue el inicio de ese proceso para muchos jóvenes!</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Gracias, Señor, por una noche que cambió vidas!</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Julián, ¿cómo describirías lo que vivieron los jóvenes en la <strong>Velada del Año</strong>?</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Como una experiencia que no se olvida! Los jóvenes vivieron una noche donde Dios habló directo al corazón.</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Aprendieron que las heridas no sanan cuando las ocultamos. Tienen que ser expuestas para que Jesús las pueda sanar.</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Que perdonar no es rendirse… ¡el perdón es el inicio de un proceso de sanidad! Y que Dios no quita nuestras batallas, nos enseña a lucharlas de su mano.</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text"><em>(con convicción)</em> Estamos seguros de que Dios sana, perdona y restaura. ¡Y este evento fue el inicio de ese proceso para muchos jóvenes!</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Gracias, Señor, por una noche que cambió vidas!</div></div>
   </div>
 
   <div class="section">
     <div class="section-header"><div class="section-tag">Bloque 2</div><div class="section-title">Festikids</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Y nosotros los niños también tuvimos nuestro momento este mes!</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡Así es! Vivimos el <strong>Festikids</strong>, un tiempo increíble donde aprendimos el valor que tenemos en Jesús.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">A través de la vida de diferentes personajes bíblicos, descubrimos cuán importantes somos para Dios.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡Y no solo aprendimos! También reímos, jugamos y nos divertimos muchísimo.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text"><em>(mirando a cámara)</em> Porque Dios nos ama, nos valora… ¡y tenemos un lugar muy especial en su corazón!</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡Fue una celebración para nuestra generación!</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Y nosotros los niños también tuvimos nuestro momento este mes!</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡Así es! Vivimos el <strong>Festikids</strong>, un tiempo increíble donde aprendimos el valor que tenemos en Jesús.</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">A través de la vida de diferentes personajes bíblicos, descubrimos cuán importantes somos para Dios.</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡Y no solo aprendimos! También reímos, jugamos y nos divertimos muchísimo.</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text"><em>(mirando a cámara)</em> Porque Dios nos ama, nos valora… ¡y tenemos un lugar muy especial en su corazón!</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡Fue una celebración para nuestra generación!</div></div>
   </div>
 
   <div class="section">
     <div class="section-header"><div class="section-tag">Bloque 3</div><div class="section-title">Brigada Médica — Hacor</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Y hablando de cuidarnos… el ministerio de <strong>Hacor</strong> nos realizó una brigada médica donde cada uno de nosotros fue atendido y revisado con mucho cuidado.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Estas son esas manos diligentes que nos sirven, que nos aman y que siembran en nuestra generación.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Cuidar nuestra salud también es una forma de honrar la obra que Dios puso en nuestras vidas.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Gracias al ministerio de Hacor! Esas manos que nos sirven reflejan el corazón de Cristo.</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Y hablando de cuidarnos… el ministerio de <strong>Hacor</strong> nos realizó una brigada médica donde cada uno de nosotros fue atendido y revisado con mucho cuidado.</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Estas son esas manos diligentes que nos sirven, que nos aman y que siembran en nuestra generación.</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Cuidar nuestra salud también es una forma de honrar la obra que Dios puso en nuestras vidas.</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Gracias al ministerio de Hacor! Esas manos que nos sirven reflejan el corazón de Cristo.</div></div>
   </div>
 
   <div class="section">
     <div class="section-header"><div class="section-tag">Bloque 4</div><div class="section-title">Día del Padre</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">¡Y cerramos este mes con una celebración muy especial!</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">¡El <strong>Día del Padre</strong>! Este mes festejamos a cada papito de Betesda.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Elogiamos su esfuerzo, su amor, su cuidado y la fortaleza con la que guían a sus familias cada día.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Celebramos la vida de cada papá que se hace cargo, que no se rinde, que con fe lleva a su familia hacia Cristo.</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Porque un papá que camina con Dios… es el mayor regalo que puede tener una familia.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text"><em>(con ternura)</em> Papás de Betesda, ¡los admiramos, los honramos y les damos gracias a Dios por cada uno de ustedes!</div></div>
-    <div class="line"><div class="speaker ambos">Ambos</div><div class="line-text">¡Feliz día, papás!</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Y cerramos este mes con una celebración muy especial!</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡El <strong>Día del Padre</strong>! Este mes festejamos a cada papito de Betesda.</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Elogiamos su esfuerzo, su amor, su cuidado y la fortaleza con la que guían a sus familias cada día.</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Celebramos la vida de cada papá que se hace cargo, que no se rinde, que con fe lleva a su familia hacia Cristo.</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Porque un papá que camina con Dios… es el mayor regalo que puede tener una familia.</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text"><em>(con ternura)</em> Papás de Betesda, ¡los admiramos, los honramos y les damos gracias a Dios por cada uno de ustedes!</div></div>
+    <div class="line" data-speaker="ambos"><div class="speaker">Ambos</div><div class="line-text">¡Feliz día, papás!</div></div>
   </div>
 
   <div class="section">
     <div class="section-header"><div class="section-tag">Cierre</div><div class="section-title">Despedida</div><div class="divider"></div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Bueno familia Betesda, esas fueron las noticias de este mes en <strong>Momentos</strong>.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">La Velada del Año, el Festikids, la Brigada Médica de Hacor, y el Día del Padre. ¡Un mes que Dios usó para sanar, celebrar y fortalecer!</div></div>
-    <div class="line"><div class="speaker julian">Julián</div><div class="line-text">Dios es fiel… y cada uno de estos momentos lo demuestra.</div></div>
-    <div class="line"><div class="speaker fabiana">Fabiana</div><div class="line-text">Nos vemos en el próximo episodio de Momentos…</div></div>
-    <div class="line"><div class="speaker ambos">Ambos</div><div class="line-text">¡Bendiciones para todos! 👋</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Bueno familia Betesda, esas fueron las noticias de este mes en <strong>Momentos</strong>.</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">La Velada del Año, el Festikids, la Brigada Médica de Hacor, y el Día del Padre. ¡Un mes que Dios usó para sanar, celebrar y fortalecer!</div></div>
+    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Dios es fiel… y cada uno de estos momentos lo demuestra.</div></div>
+    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Nos vemos en el próximo episodio de Momentos…</div></div>
+    <div class="line" data-speaker="ambos"><div class="speaker">Ambos</div><div class="line-text">¡Bendiciones para todos! 👋</div></div>
   </div>
 
   <footer>Betesda Media · Momentos · Guion de grabación</footer>
@@ -430,14 +498,11 @@
 
 <!-- ══ REMOTE UI (iPhone) ══ -->
 <div class="remote-ui" id="remoteUi">
-
-  <!-- Top -->
   <div class="r-topbar">
     <div class="r-logo">MOMENTOS Jun. 2026 <span>▶</span> Control</div>
     <div class="r-status" id="rStatus">Conectando…</div>
   </div>
 
-  <!-- Ajustes: brillo y texto -->
   <div class="r-adjusts">
     <div class="r-adjust-card">
       <button class="r-adj-btn" id="rBrDown">☀−</button>
@@ -451,43 +516,37 @@
     </div>
   </div>
 
-  <!-- Zona de deslizamiento -->
   <div class="r-swipe-zone" id="rSwipeZone">
     <div class="r-swipe-icon">↕</div>
     <div class="r-swipe-label">Desliza para desplazar</div>
   </div>
 
-  <!-- Navegación de bloques -->
   <div class="r-blocks">
     <button class="r-block-btn" id="rPrevBlock">← Bloque anterior</button>
     <button class="r-block-btn" id="rNextBlock">Bloque siguiente →</button>
   </div>
 
-  <!-- Play / Pausa / Reset -->
   <div class="r-play-row">
     <button class="r-main-btn r-btn-play"  id="rPlay">▶ INICIAR</button>
     <button class="r-main-btn r-btn-pause" id="rPause">⏸ PAUSAR</button>
     <button class="r-main-btn r-btn-reset" id="rReset">↩</button>
   </div>
 
-  <!-- Velocidad -->
   <div class="r-speed-row">
     <button class="r-spd-btn" id="rSDown">−</button>
     <div><div class="r-speed-label">Velocidad</div><div class="r-speed-val" id="rSpeedVal">1.0</div></div>
     <button class="r-spd-btn" id="rSUp">+</button>
   </div>
 
-  <!-- Herramientas: pantalla completa / espejo / editar -->
   <div class="r-tools">
     <button class="r-tool-btn" id="rFullscreen"><span class="r-tool-icon">⛶</span>Pantalla completa</button>
     <button class="r-tool-btn" id="rMirror"><span class="r-tool-icon">⇄</span>Espejo</button>
     <button class="r-tool-btn" id="rEdit"><span class="r-tool-icon">✏️</span>Editar</button>
   </div>
-
 </div>
 
 <script>
-/* Bloqueo extra contra el zoom por doble tap en iOS (refuerzo al meta viewport) */
+/* Bloqueo extra contra el zoom por doble tap en iOS */
 let lastTouchEnd = 0;
 document.addEventListener('touchend', e => {
   const now = Date.now();
@@ -511,6 +570,32 @@ if (remoteId) {
    TELEPROMPTER (iPad)
 ════════════════════════════════════════════ */
 function initTeleprompter() {
+  const STORAGE_KEY = 'momentos_teleprompter_data_v1';
+
+  let presenters = {
+    julian:  { name: 'Julián',  color: '#5bc4f5' },
+    fabiana: { name: 'Fabiana', color: '#f87db0' },
+    ambos:   { name: 'Ambos',   color: '#f8991d' }
+  };
+
+  /* — Cargar datos guardados (localStorage) antes de construir la UI — */
+  function loadFromData(data) {
+    if (!data) return;
+    if (data.presenters) presenters = data.presenters;
+    const lineEls = document.querySelectorAll('.line');
+    if (data.lines && data.lines.length === lineEls.length) {
+      lineEls.forEach((line, i) => {
+        const textEl = line.querySelector('.line-text');
+        if (textEl && data.lines[i] !== undefined) textEl.innerHTML = data.lines[i];
+        if (data.speakers && data.speakers[i]) line.dataset.speaker = data.speakers[i];
+      });
+    }
+  }
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) loadFromData(JSON.parse(saved));
+  } catch(e) {}
+
   const lines    = document.querySelectorAll('.line');
   const sections = document.querySelectorAll('.section');
   const bar      = document.getElementById('progressBar');
@@ -525,6 +610,184 @@ function initTeleprompter() {
   let raf;
   let peer, remotePeer;
 
+  /* ── SISTEMA DE PRESENTADORES ── */
+  function applySpeakerColor(select) {
+    const p = presenters[select.value] || Object.values(presenters)[0];
+    if (p) select.style.color = p.color;
+  }
+
+  function initSpeakerSystem() {
+    lines.forEach(line => {
+      const speakerDiv = line.querySelector('.speaker');
+      if (!speakerDiv || speakerDiv.tagName === 'SELECT') return;
+      let id = line.dataset.speaker;
+      if (!id || !presenters[id]) id = Object.keys(presenters)[0];
+      line.dataset.speaker = id;
+
+      const select = document.createElement('select');
+      select.className = 'speaker-select';
+      Object.keys(presenters).forEach(pid => {
+        const opt = document.createElement('option');
+        opt.value = pid;
+        opt.textContent = presenters[pid].name;
+        if (pid === id) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', () => {
+        line.dataset.speaker = select.value;
+        applySpeakerColor(select);
+        saveEditsLocally();
+      });
+      speakerDiv.replaceWith(select);
+      applySpeakerColor(select);
+    });
+    renderLegend();
+  }
+
+  function refreshAllSpeakerSelects() {
+    document.querySelectorAll('.speaker-select').forEach(select => {
+      const line = select.closest('.line');
+      let current = line.dataset.speaker;
+      if (!presenters[current]) { current = Object.keys(presenters)[0]; line.dataset.speaker = current; }
+      select.innerHTML = '';
+      Object.keys(presenters).forEach(pid => {
+        const opt = document.createElement('option');
+        opt.value = pid; opt.textContent = presenters[pid].name;
+        if (pid === current) opt.selected = true;
+        select.appendChild(opt);
+      });
+      applySpeakerColor(select);
+    });
+    renderLegend();
+  }
+
+  function renderLegend() {
+    const legend = document.getElementById('legend');
+    legend.innerHTML = '';
+    Object.values(presenters).forEach(p => {
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = '<div class="dot" style="background:' + p.color + '"></div> ' + p.name;
+      legend.appendChild(item);
+    });
+  }
+
+  initSpeakerSystem();
+
+  /* — Panel de presentadores — */
+  const presentersOverlay = document.getElementById('presentersOverlay');
+  function renderPresentersPanel() {
+    const list = document.getElementById('presentersList');
+    list.innerHTML = '';
+    Object.keys(presenters).forEach(pid => {
+      const row = document.createElement('div');
+      row.className = 'presenter-row';
+      row.innerHTML =
+        '<input type="color" value="' + presenters[pid].color + '" class="presenter-color" data-pid="' + pid + '">' +
+        '<input type="text" value="' + presenters[pid].name + '" class="presenter-name" data-pid="' + pid + '">' +
+        '<button class="presenter-remove" data-pid="' + pid + '">🗑</button>';
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.presenter-color').forEach(inp => {
+      inp.addEventListener('input', e => {
+        presenters[e.target.dataset.pid].color = e.target.value;
+        refreshAllSpeakerSelects(); saveEditsLocally();
+      });
+    });
+    list.querySelectorAll('.presenter-name').forEach(inp => {
+      inp.addEventListener('input', e => {
+        presenters[e.target.dataset.pid].name = e.target.value;
+        refreshAllSpeakerSelects(); saveEditsLocally();
+      });
+    });
+    list.querySelectorAll('.presenter-remove').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const pid = e.target.dataset.pid;
+        if (Object.keys(presenters).length <= 1) { alert('Debe quedar al menos un presentador.'); return; }
+        if (!confirm('¿Eliminar a "' + presenters[pid].name + '"? Sus líneas pasarán al primer presentador restante.')) return;
+        delete presenters[pid];
+        const fallback = Object.keys(presenters)[0];
+        lines.forEach(line => { if (line.dataset.speaker === pid) line.dataset.speaker = fallback; });
+        refreshAllSpeakerSelects();
+        renderPresentersPanel();
+        saveEditsLocally();
+      });
+    });
+  }
+  document.getElementById('addPresenterBtn').addEventListener('click', () => {
+    const palette = ['#5bc4f5','#f87db0','#f8991d','#a78bfa','#4ade80','#f87171','#facc15','#38bdf8','#fb923c','#e879f9'];
+    const used = Object.values(presenters).map(p => p.color);
+    const nextColor = palette.find(c => !used.includes(c)) || palette[Object.keys(presenters).length % palette.length];
+    const newId = 'p' + Date.now();
+    presenters[newId] = { name: 'Nuevo', color: nextColor };
+    refreshAllSpeakerSelects();
+    renderPresentersPanel();
+    saveEditsLocally();
+  });
+  function openPresenters() { renderPresentersPanel(); presentersOverlay.classList.add('visible'); }
+  document.getElementById('btnOpenPresenters').addEventListener('click', openPresenters);
+  document.getElementById('btnPresentersHeader').addEventListener('click', openPresenters);
+  document.getElementById('closePresentersOverlay').addEventListener('click', () => presentersOverlay.classList.remove('visible'));
+
+  /* ── GUARDADO LOCAL Y CÓDIGO DE RESPALDO ── */
+  let saveToastTimeout;
+  function showToast() {
+    const toast = document.getElementById('saveToast');
+    toast.classList.add('show');
+    clearTimeout(saveToastTimeout);
+    saveToastTimeout = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function gatherData() {
+    return {
+      lines: Array.from(lines).map(l => l.querySelector('.line-text').innerHTML),
+      speakers: Array.from(lines).map(l => l.dataset.speaker),
+      presenters: presenters
+    };
+  }
+
+  function saveEditsLocally() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(gatherData())); } catch(e) {}
+  }
+
+  const saveOverlay = document.getElementById('saveOverlay');
+  const loadOverlay = document.getElementById('loadOverlay');
+
+  document.getElementById('btnSaveScript').addEventListener('click', () => {
+    saveEditsLocally();
+    const code = btoa(unescape(encodeURIComponent(JSON.stringify(gatherData()))));
+    document.getElementById('saveCodeText').value = code;
+    saveOverlay.classList.add('visible');
+    showToast();
+  });
+  document.getElementById('closeSaveOverlay').addEventListener('click', () => saveOverlay.classList.remove('visible'));
+  document.getElementById('copySaveCode').addEventListener('click', () => {
+    const ta = document.getElementById('saveCodeText');
+    ta.select();
+    navigator.clipboard?.writeText(ta.value).catch(() => document.execCommand('copy'));
+  });
+
+  document.getElementById('btnLoadScript').addEventListener('click', () => {
+    document.getElementById('loadCodeText').value = '';
+    loadOverlay.classList.add('visible');
+  });
+  document.getElementById('closeLoadOverlay').addEventListener('click', () => loadOverlay.classList.remove('visible'));
+  document.getElementById('applyLoadCode').addEventListener('click', () => {
+    const raw = document.getElementById('loadCodeText').value.trim();
+    if (!raw) return;
+    try {
+      const data = JSON.parse(decodeURIComponent(escape(atob(raw))));
+      loadFromData(data);
+      refreshAllSpeakerSelects();
+      document.querySelectorAll('.line-text').forEach((el, i) => { if (data.lines && data.lines[i] !== undefined) el.innerHTML = data.lines[i]; });
+      saveEditsLocally();
+      loadOverlay.classList.remove('visible');
+      showToast();
+    } catch(e) {
+      alert('El código no es válido. Verifica que lo copiaste completo.');
+    }
+  });
+
   /* — Velocidad — */
   function setSpeed(v) {
     speed = Math.min(4.0, Math.max(0.3, parseFloat(v.toFixed(1))));
@@ -533,7 +796,7 @@ function initTeleprompter() {
   document.getElementById('sDown').addEventListener('click', () => setSpeed(speed - 0.2));
   document.getElementById('sUp').addEventListener('click',   () => setSpeed(speed + 0.2));
 
-  /* — Tamaño texto — */
+  /* — Tamaño texto (sin límite práctico) — */
   function setFontSize(v) {
     fontSize = Math.min(12.0, Math.max(0.9, parseFloat(v.toFixed(2))));
     document.querySelectorAll('.line-text').forEach(el => el.style.fontSize = fontSize + 'rem');
@@ -544,16 +807,14 @@ function initTeleprompter() {
   /* — Brillo — */
   function setBrightness(v) {
     brightness = Math.min(1.0, Math.max(0.2, parseFloat(v.toFixed(2))));
-    scriptEl.style.filter = brightness < 1.0 ? `brightness(${brightness})` : '';
+    scriptEl.style.filter = brightness < 1.0 ? 'brightness(' + brightness + ')' : '';
   }
 
-  /* — Pantalla completa (modo inmersivo: solo texto) — */
+  /* — Pantalla completa (modo inmersivo, mantiene nombres) — */
   const btnFs = document.getElementById('btnFs');
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {
-        // Si el navegador rechaza el fullscreen remoto (requiere gesto local),
-        // igual aplicamos el modo inmersivo visual.
         document.body.classList.add('immersive');
         btnFs.textContent = '✕ Salir pantalla completa';
         sendRemoteState();
@@ -584,15 +845,21 @@ function initTeleprompter() {
     editMode = !editMode;
     document.body.classList.toggle('edit-mode', editMode);
     document.getElementById('btnEdit').classList.toggle('active', editMode);
-    document.querySelectorAll('.line-text').forEach(el =>
-      editMode ? el.setAttribute('contenteditable','true') : el.removeAttribute('contenteditable')
-    );
+    document.querySelectorAll('.line-text').forEach(el => {
+      if (editMode) el.setAttribute('contenteditable','true');
+      else el.removeAttribute('contenteditable');
+    });
     if (editMode) { scrolling = false; cancelAnimationFrame(raf); }
+    else saveEditsLocally();
     sendRemoteState();
   }
   document.getElementById('btnEdit').addEventListener('click', toggleEdit);
 
-  /* — Enviar estado actual al iPhone (para sincronizar botones activos) — */
+  /* Autosave al salir de foco de una línea editada */
+  scriptEl.addEventListener('blur', e => {
+    if (editMode && e.target.classList && e.target.classList.contains('line-text')) saveEditsLocally();
+  }, true);
+
   function sendRemoteState() {
     if (remotePeer && remotePeer.open) {
       remotePeer.send({
@@ -730,7 +997,7 @@ function initRemote(peerId) {
   let conn;
   let remoteSpeed = 1.0;
   let brightness  = 1.0;
-  let fontStep    = 0; // contador relativo, sin límite fijo
+  let fontStep    = 0;
 
   const btnFullscreen = document.getElementById('rFullscreen');
   const btnMirror     = document.getElementById('rMirror');
@@ -754,17 +1021,10 @@ function initRemote(peerId) {
 
   function send(data) { if (conn && conn.open) conn.send(data); }
 
-  /* Herramientas: pantalla completa / espejo / editar */
-  btnFullscreen.addEventListener('click', () => send({ cmd: 'fullscreen' }));
-  btnMirror.addEventListener('click',     () => send({ cmd: 'mirror' }));
-  btnEdit.addEventListener('click',       () => send({ cmd: 'edit' }));
-
-  /* Botones principales */
   document.getElementById('rPlay').addEventListener('click',  () => send({ cmd:'play' }));
   document.getElementById('rPause').addEventListener('click', () => send({ cmd:'pause' }));
   document.getElementById('rReset').addEventListener('click', () => send({ cmd:'reset' }));
 
-  /* Velocidad */
   document.getElementById('rSDown').addEventListener('click', () => {
     remoteSpeed = Math.max(0.3, parseFloat((remoteSpeed-0.2).toFixed(1)));
     rSpeedVal.textContent = remoteSpeed.toFixed(1);
@@ -776,7 +1036,6 @@ function initRemote(peerId) {
     send({ cmd:'speed', value: remoteSpeed });
   });
 
-  /* Brillo */
   document.getElementById('rBrDown').addEventListener('click', () => {
     brightness = Math.max(0.2, parseFloat((brightness-0.1).toFixed(1)));
     rBrVal.textContent = Math.round(brightness*100) + '%';
@@ -788,7 +1047,6 @@ function initRemote(peerId) {
     send({ cmd:'brightness', dir:'up' });
   });
 
-  /* Tamaño texto */
   document.getElementById('rFtDown').addEventListener('click', () => {
     fontStep -= 1;
     rFtVal.textContent = fontStep;
@@ -800,15 +1058,18 @@ function initRemote(peerId) {
     send({ cmd:'fontSize', dir:'up' });
   });
 
-  /* Bloques */
   document.getElementById('rPrevBlock').addEventListener('click', () => send({ cmd:'block', dir:'prev' }));
   document.getElementById('rNextBlock').addEventListener('click', () => send({ cmd:'block', dir:'next' }));
 
-  /* ── ZONA DE DESLIZAMIENTO (touch = scroll directo en iPad) ── */
+  btnFullscreen.addEventListener('click', () => send({ cmd: 'fullscreen' }));
+  btnMirror.addEventListener('click',     () => send({ cmd: 'mirror' }));
+  btnEdit.addEventListener('click',       () => send({ cmd: 'edit' }));
+
   const swipeZone = document.getElementById('rSwipeZone');
   let lastY = null;
   let velocity = 0;
   let momentumRaf;
+  let touchMoved = false;
 
   function spawnRipple(x, y) {
     const ripple = document.createElement('div');
@@ -824,6 +1085,7 @@ function initRemote(peerId) {
     cancelAnimationFrame(momentumRaf);
     lastY = e.touches[0].clientY;
     velocity = 0;
+    touchMoved = false;
     const rect = swipeZone.getBoundingClientRect();
     spawnRipple(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
     e.preventDefault();
@@ -831,8 +1093,9 @@ function initRemote(peerId) {
 
   swipeZone.addEventListener('touchmove', e => {
     if (lastY === null) return;
+    touchMoved = true;
     const currentY = e.touches[0].clientY;
-    const delta = (lastY - currentY) * 2.5; // invertido y amplificado
+    const delta = (lastY - currentY) * 2.5;
     velocity = delta;
     send({ cmd:'scroll', delta });
     lastY = currentY;
@@ -840,7 +1103,7 @@ function initRemote(peerId) {
   }, { passive: false });
 
   swipeZone.addEventListener('touchend', () => {
-    // Momentum: continúa enviando scroll con velocidad decreciente
+    if (!touchMoved) { send({ cmd: 'play' }); }
     function momentum() {
       if (Math.abs(velocity) < 0.5) { lastY = null; return; }
       send({ cmd:'scroll', delta: velocity });
@@ -848,17 +1111,6 @@ function initRemote(peerId) {
       momentumRaf = requestAnimationFrame(momentum);
     }
     momentum();
-  });
-
-  /* Tap simple = play/pause toggle */
-  let touchMoved = false;
-  swipeZone.addEventListener('touchstart', () => { touchMoved = false; });
-  swipeZone.addEventListener('touchmove',  () => { touchMoved = true; });
-  swipeZone.addEventListener('touchend', e => {
-    if (!touchMoved) {
-      // tap sin movimiento = toggle play/pause
-      send({ cmd: 'play' }); // el iPad manejará el toggle con la lógica interna
-    }
   });
 }
 </script>
