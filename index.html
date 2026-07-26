@@ -342,9 +342,9 @@
 
 <!-- BANNER DE EDICIÓN -->
 <div class="edit-banner">
-  ✏️ MODO EDICIÓN ACTIVO — Toca una línea para editar el texto, o el nombre del presentador para reasignar
+  ✏️ MODO EDICIÓN ACTIVO — Se guarda solo en la nube. Toca una línea para editar el texto, o el nombre del presentador para reasignar
   <div class="edit-banner-actions">
-    <button class="edit-banner-btn" id="btnSaveScript">💾 Guardar y generar código</button>
+    <button class="edit-banner-btn" id="btnSaveScript">💾 Ver código de respaldo</button>
     <button class="edit-banner-btn" id="btnLoadScript">📥 Cargar código</button>
     <button class="edit-banner-btn" id="btnOpenPresenters">👥 Presentadores</button>
   </div>
@@ -353,8 +353,8 @@
 <!-- PANEL: GUARDAR -->
 <div class="code-overlay" id="saveOverlay">
   <div class="code-panel">
-    <h3>💾 Código de respaldo generado</h3>
-    <p>Copia este código y pégalo en cualquier otro equipo (botón "Cargar código") para que tenga exactamente este mismo guion, con tus ediciones y presentadores. También quedó guardado automáticamente en este dispositivo.</p>
+    <h3>💾 Guardado en la nube</h3>
+    <p>Tus cambios ya se guardaron automáticamente y estarán disponibles al abrir el link en cualquier otro equipo (no necesitas hacer nada más). Este código es solo un respaldo extra por si algún día quieres restaurar esta versión exacta manualmente.</p>
     <textarea id="saveCodeText" readonly></textarea>
     <div class="code-panel-actions">
       <button class="code-panel-btn secondary" id="closeSaveOverlay">Cerrar</button>
@@ -389,7 +389,7 @@
   </div>
 </div>
 
-<div class="save-toast" id="saveToast">✓ Guardado en este equipo</div>
+<div class="save-toast" id="saveToast">✓ Guardado en la nube</div>
 
 <!-- HEADER (teleprompter) -->
 <header>
@@ -569,8 +569,9 @@ if (remoteId) {
 /* ════════════════════════════════════════════
    TELEPROMPTER (iPad)
 ════════════════════════════════════════════ */
-function initTeleprompter() {
+async function initTeleprompter() {
   const STORAGE_KEY = 'momentos_teleprompter_data_v1';
+  const CLOUD_URL = 'https://betesda-teleprompter-default-rtdb.firebaseio.com/momentos_script.json';
 
   let presenters = {
     julian:  { name: 'Julián',  color: '#5bc4f5' },
@@ -578,7 +579,7 @@ function initTeleprompter() {
     ambos:   { name: 'Ambos',   color: '#f8991d' }
   };
 
-  /* — Cargar datos guardados (localStorage) antes de construir la UI — */
+  /* — Cargar datos guardados antes de construir la UI — */
   function loadFromData(data) {
     if (!data) return;
     if (data.presenters) presenters = data.presenters;
@@ -591,10 +592,22 @@ function initTeleprompter() {
       });
     }
   }
+
+  /* Prioridad: nube (compartido entre equipos) → si falla, respaldo local de este equipo */
+  let cloudLoaded = false;
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) loadFromData(JSON.parse(saved));
+    const res = await fetch(CLOUD_URL, { cache: 'no-store' });
+    if (res.ok) {
+      const cloudData = await res.json();
+      if (cloudData) { loadFromData(cloudData); cloudLoaded = true; }
+    }
   } catch(e) {}
+  if (!cloudLoaded) {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) loadFromData(JSON.parse(saved));
+    } catch(e) {}
+  }
 
   const lines    = document.querySelectorAll('.line');
   const sections = document.querySelectorAll('.section');
@@ -747,7 +760,14 @@ function initTeleprompter() {
   }
 
   function saveEditsLocally() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(gatherData())); } catch(e) {}
+    const data = gatherData();
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+    // Guardado en la nube: se propaga a cualquier otro equipo que abra el link
+    fetch(CLOUD_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).catch(() => {});
   }
 
   const saveOverlay = document.getElementById('saveOverlay');
