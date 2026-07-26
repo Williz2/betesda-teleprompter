@@ -295,6 +295,27 @@
   }
   .r-swipe-ripple.go { transform: scale(4); opacity: 0; }
 
+  /* — Vista en vivo del guion dentro de la zona de deslizar — */
+  .r-script-view {
+    position: absolute; left: 0; right: 0; top: 0;
+    padding: 20px 16px; pointer-events: none;
+    will-change: transform;
+  }
+  .r-script-line { margin-bottom: 14px; }
+  .r-script-speaker {
+    font-size: 0.6rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 2px; opacity: 0.85;
+  }
+  .r-script-text { font-size: 0.85rem; line-height: 1.4; color: #d5daea; }
+  .r-script-line.current .r-script-text {
+    color: #fff; font-weight: 700;
+  }
+  .r-script-fade-top, .r-script-fade-bottom {
+    position: absolute; left: 0; right: 0; height: 30px; pointer-events: none; z-index: 2;
+  }
+  .r-script-fade-top { top: 0; background: linear-gradient(#0f1520, transparent); }
+  .r-script-fade-bottom { bottom: 0; background: linear-gradient(transparent, #0f1520); }
+
   .r-blocks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
   .r-block-btn {
     padding: 12px 10px; border-radius: 12px; border: 1px solid #2a3555; background: #161c28;
@@ -517,8 +538,11 @@
   </div>
 
   <div class="r-swipe-zone" id="rSwipeZone">
-    <div class="r-swipe-icon">↕</div>
-    <div class="r-swipe-label">Desliza para desplazar</div>
+    <div class="r-swipe-icon" id="rSwipeIcon">↕</div>
+    <div class="r-swipe-label" id="rSwipeLabel">Desliza para desplazar</div>
+    <div class="r-script-view" id="rScriptView"></div>
+    <div class="r-script-fade-top"></div>
+    <div class="r-script-fade-bottom"></div>
   </div>
 
   <div class="r-blocks">
@@ -768,6 +792,7 @@ async function initTeleprompter() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }).catch(() => {});
+    sendScriptToRemote();
   }
 
   const saveOverlay = document.getElementById('saveOverlay');
@@ -892,6 +917,12 @@ async function initTeleprompter() {
     }
   }
 
+  function sendScriptToRemote() {
+    if (remotePeer && remotePeer.open) {
+      remotePeer.send({ script: gatherData() });
+    }
+  }
+
   /* — Scroll — */
   function play()  { if (editMode) return; scrolling = true; cancelAnimationFrame(raf); raf = requestAnimationFrame(autoScroll); }
   function pause() { scrolling = false; cancelAnimationFrame(raf); }
@@ -917,10 +948,17 @@ async function initTeleprompter() {
     updateProgress(); highlightCurrent();
     raf = requestAnimationFrame(autoScroll);
   }
+  let lastSyncSent = 0;
   function updateProgress() {
     const scrolled = window.scrollY;
     const total = document.body.scrollHeight - window.innerHeight;
-    bar.style.width = (total > 0 ? (scrolled/total)*100 : 0) + '%';
+    const percent = total > 0 ? scrolled / total : 0;
+    bar.style.width = (percent * 100) + '%';
+    const now = Date.now();
+    if (remotePeer && remotePeer.open && now - lastSyncSent > 80) {
+      remotePeer.send({ cmd: 'syncScroll', percent });
+      lastSyncSent = now;
+    }
   }
   function highlightCurrent() {
     const mid = window.scrollY + window.innerHeight * 0.45;
@@ -996,7 +1034,7 @@ async function initTeleprompter() {
         if (data.cmd === 'mirror')     toggleMirror();
         if (data.cmd === 'edit')       toggleEdit();
       });
-      conn.on('open', () => sendRemoteState());
+      conn.on('open', () => { sendRemoteState(); sendScriptToRemote(); });
       conn.on('close', () => {
         panelStatus.textContent = 'Desconectado';
         panelStatus.classList.remove('connected');
@@ -1035,9 +1073,47 @@ function initRemote(peerId) {
         btnMirror.classList.toggle('active', !!data.state.mirror);
         btnEdit.classList.toggle('active', !!data.state.edit);
       }
+      if (data.script) buildScriptView(data.script);
+      if (data.cmd === 'syncScroll') applyScrollPercent(data.percent);
     });
   });
   peer.on('error', () => { rStatus.textContent = 'Sin conexión'; });
+
+  /* — Vista en vivo del guion dentro de la zona de deslizar — */
+  const scriptViewEl = document.getElementById('rScriptView');
+  const swipeIconEl  = document.getElementById('rSwipeIcon');
+  const swipeLabelEl = document.getElementById('rSwipeLabel');
+  let scriptScrollHeight = 0;
+  let lastPercent = 0;
+
+  function buildScriptView(data) {
+    if (!data.lines) return;
+    scriptViewEl.innerHTML = '';
+    data.lines.forEach((html, i) => {
+      const speakerId = data.speakers && data.speakers[i];
+      const presenter = (data.presenters && speakerId && data.presenters[speakerId]) || { name: '', color: '#8899bb' };
+      const row = document.createElement('div');
+      row.className = 'r-script-line';
+      row.innerHTML =
+        '<div class="r-script-speaker" style="color:' + presenter.color + '">' + presenter.name + '</div>' +
+        '<div class="r-script-text">' + html + '</div>';
+      scriptViewEl.appendChild(row);
+    });
+    swipeIconEl.style.display = 'none';
+    swipeLabelEl.style.display = 'none';
+    requestAnimationFrame(() => {
+      scriptScrollHeight = scriptViewEl.scrollHeight;
+      applyScrollPercent(lastPercent);
+    });
+  }
+
+  function applyScrollPercent(percent) {
+    lastPercent = percent;
+    const zoneHeight = document.getElementById('rSwipeZone').clientHeight;
+    const maxOffset = Math.max(0, scriptScrollHeight - zoneHeight);
+    const offset = percent * maxOffset;
+    scriptViewEl.style.transform = 'translateY(' + (-offset) + 'px)';
+  }
 
   function send(data) { if (conn && conn.open) conn.send(data); }
 
