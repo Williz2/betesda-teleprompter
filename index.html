@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>MOMENTOS Junio 2026 — Teleprompter | Betesda Media</title>
+<title>Teleprompter Williz</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
@@ -30,6 +30,8 @@
     gap: 12px; flex-wrap: wrap;
   }
   .logo { font-size: 1rem; font-weight: 900; letter-spacing: 0.08em; color: #fff; }
+  .logo[contenteditable] { outline: 1px dashed rgba(255,255,255,.3); border-radius: 4px; padding: 2px 6px; cursor: text; }
+  .logo[contenteditable]:focus { outline: 1px solid var(--naranja); background: rgba(255,255,255,.05); }
   .logo span { color: var(--naranja); }
   .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .ctrl-group {
@@ -96,7 +98,7 @@
   }
   .edit-banner-btn:hover { background: rgba(74,222,128,.28); }
 
-  /* ── SPEAKER SELECT (presentador por línea) ── */
+  /* ── SPEAKER SELECT ── */
   .speaker-select {
     appearance: none; -webkit-appearance: none; -moz-appearance: none;
     border: none; background: transparent; font: inherit;
@@ -109,7 +111,39 @@
     border-bottom: 1px dashed currentColor; padding-bottom: 2px;
   }
 
-  /* ── PANEL DE CÓDIGO / PRESENTADORES (overlay) ── */
+  /* ── BOTONES DE ESTRUCTURA (solo en modo edición) ── */
+  .line-del-btn {
+    display: none; position: absolute; top: 8px; right: 8px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(239,68,68,.15); border: 1px solid #ef4444; color: #ef4444;
+    font-size: 0.7rem; cursor: pointer; align-items: center; justify-content: center;
+    font-family: inherit; z-index: 5;
+  }
+  body.edit-mode .line-del-btn { display: flex; }
+  .section-del-btn {
+    display: none; background: rgba(239,68,68,.12); border: 1px solid #ef4444; color: #ef4444;
+    border-radius: 6px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  body.edit-mode .section-del-btn { display: inline-flex; align-items: center; gap: 4px; }
+  .add-line-btn, .add-block-btn {
+    display: none; width: 100%; margin-top: 10px;
+    background: rgba(248,153,29,.08); border: 1px dashed var(--naranja); color: var(--naranja);
+    padding: 10px; border-radius: 8px; font-family: inherit; font-weight: 700;
+    font-size: 0.82rem; cursor: pointer;
+  }
+  body.edit-mode .add-line-btn, body.edit-mode .add-block-btn { display: block; }
+  .add-block-btn { margin-top: 4px; margin-bottom: 40px; }
+  .section-tag[contenteditable], .section-title[contenteditable] {
+    outline: 1px dashed rgba(74,222,128,.3); border-radius: 4px; cursor: text;
+  }
+  .empty-state {
+    display: none; text-align: center; color: var(--muted); padding: 60px 20px;
+    font-size: 0.95rem; line-height: 1.7;
+  }
+  .empty-state strong { color: var(--naranja); }
+
+  /* ── PANEL DE CÓDIGO / PRESENTADORES ── */
   .code-overlay {
     display: none; position: fixed; inset: 0;
     background: rgba(0,0,0,.7); z-index: 500;
@@ -143,7 +177,6 @@
   }
   .save-toast.show { transform: translateX(-50%) translateY(0); }
 
-  /* Fila de presentador dentro del panel */
   .presenter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .presenter-color {
     width: 36px; height: 36px; border: none; border-radius: 8px;
@@ -164,7 +197,7 @@
     font-size: 0.82rem; cursor: pointer;
   }
 
-  /* ── PANEL QR (control remoto) ── */
+  /* ── PANEL QR ── */
   .remote-panel {
     display: none; position: fixed; top: 70px; right: 20px;
     background: #1a2035; border: 1px solid #2a3555;
@@ -197,12 +230,12 @@
 
   /* ── ÁREA DE GUION ── */
   #script {
-    margin-top: 72px; padding: 40px 3vw 120px;
+    margin-top: 72px; padding: 40px 3vw 40px;
     max-width: min(97vw, 1800px); margin-left: auto; margin-right: auto;
     transition: transform .3s ease, filter .2s ease;
   }
   .section { margin-bottom: 56px; }
-  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
   .section-tag {
     background: var(--azul); border-left: 4px solid var(--naranja);
     padding: 6px 14px; border-radius: 0 6px 6px 0;
@@ -210,11 +243,12 @@
     text-transform: uppercase; color: var(--naranja); white-space: nowrap;
   }
   .section-title { font-size: 1.1rem; font-weight: 900; color: #fff; letter-spacing: 0.03em; }
-  .divider { flex: 1; height: 1px; background: #2a3048; }
+  .divider { flex: 1; height: 1px; background: #2a3048; min-width: 20px; }
   .line {
     display: grid; grid-template-columns: 130px 1fr;
     gap: 0 20px; padding: 14px 0;
     border-bottom: 1px solid #1c2236; align-items: start;
+    position: relative;
   }
   .line:last-child { border-bottom: none; }
   .line-text { font-size: 1.35rem; line-height: 1.6; color: var(--text); }
@@ -232,7 +266,7 @@
   }
   footer { text-align: center; padding: 16px; color: var(--muted); font-size: 0.75rem; }
 
-  /* ── MODO INMERSIVO (pantalla completa limpia, mantiene nombres) ── */
+  /* ── MODO INMERSIVO ── */
   body.immersive header,
   body.immersive .progress-bar,
   body.immersive .legend { display: none !important; }
@@ -295,21 +329,17 @@
   }
   .r-swipe-ripple.go { transform: scale(4); opacity: 0; }
 
-  /* — Vista en vivo del guion dentro de la zona de deslizar — */
   .r-script-view {
     position: absolute; left: 0; right: 0; top: 0;
-    padding: 20px 16px; pointer-events: none;
-    will-change: transform;
+    padding: 20px 16px; pointer-events: none; will-change: transform;
+  }
+  .r-script-section-title {
+    font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #556; margin: 16px 0 10px; opacity: 0.7;
   }
   .r-script-line { margin-bottom: 14px; }
-  .r-script-speaker {
-    font-size: 0.6rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
-    margin-bottom: 2px; opacity: 0.85;
-  }
+  .r-script-speaker { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2px; opacity: 0.85; }
   .r-script-text { font-size: 0.85rem; line-height: 1.4; color: #d5daea; }
-  .r-script-line.current .r-script-text {
-    color: #fff; font-weight: 700;
-  }
   .r-script-fade-top, .r-script-fade-bottom {
     position: absolute; left: 0; right: 0; height: 30px; pointer-events: none; z-index: 2;
   }
@@ -361,21 +391,20 @@
 </head>
 <body>
 
-<!-- BANNER DE EDICIÓN -->
 <div class="edit-banner">
-  ✏️ MODO EDICIÓN ACTIVO — Se guarda solo en la nube. Toca una línea para editar el texto, o el nombre del presentador para reasignar
+  ✏️ MODO EDICIÓN ACTIVO — Se guarda solo en la nube
   <div class="edit-banner-actions">
     <button class="edit-banner-btn" id="btnSaveScript">💾 Ver código de respaldo</button>
     <button class="edit-banner-btn" id="btnLoadScript">📥 Cargar código</button>
     <button class="edit-banner-btn" id="btnOpenPresenters">👥 Presentadores</button>
+    <button class="edit-banner-btn" id="btnResetScript" style="border-color:#ef4444;color:#ef4444;background:rgba(239,68,68,.12);">🗑 Borrar guion completo</button>
   </div>
 </div>
 
-<!-- PANEL: GUARDAR -->
 <div class="code-overlay" id="saveOverlay">
   <div class="code-panel">
     <h3>💾 Guardado en la nube</h3>
-    <p>Tus cambios ya se guardaron automáticamente y estarán disponibles al abrir el link en cualquier otro equipo (no necesitas hacer nada más). Este código es solo un respaldo extra por si algún día quieres restaurar esta versión exacta manualmente.</p>
+    <p>Tus cambios ya se guardaron automáticamente y estarán disponibles al abrir el link en cualquier otro equipo. Este código es solo un respaldo extra por si algún día quieres restaurar esta versión exacta manualmente.</p>
     <textarea id="saveCodeText" readonly></textarea>
     <div class="code-panel-actions">
       <button class="code-panel-btn secondary" id="closeSaveOverlay">Cerrar</button>
@@ -384,7 +413,6 @@
   </div>
 </div>
 
-<!-- PANEL: CARGAR -->
 <div class="code-overlay" id="loadOverlay">
   <div class="code-panel">
     <h3>📥 Cargar código de respaldo</h3>
@@ -397,11 +425,10 @@
   </div>
 </div>
 
-<!-- PANEL: PRESENTADORES -->
 <div class="code-overlay" id="presentersOverlay">
   <div class="code-panel">
     <h3>👥 Presentadores</h3>
-    <p>Edita el nombre y color de cada presentador, agrega nuevos o elimínalos. Los cambios se aplican a todo el guion.</p>
+    <p>Edita el nombre y color de cada presentador, agrega nuevos o elimínalos.</p>
     <div id="presentersList"></div>
     <button class="add-presenter-btn" id="addPresenterBtn">+ Agregar presentador</button>
     <div class="code-panel-actions">
@@ -412,9 +439,8 @@
 
 <div class="save-toast" id="saveToast">✓ Guardado en la nube</div>
 
-<!-- HEADER (teleprompter) -->
 <header>
-  <div class="logo">MOMENTOS <span>▶</span> Junio 2026</div>
+  <div class="logo" id="appTitleEl">Teleprompter Williz</div>
   <div class="controls">
     <div class="ctrl-group">
       <button class="btn btn-start" id="btnPlay">▶ Iniciar</button>
@@ -442,7 +468,6 @@
 
 <div class="progress-bar" id="progressBar"></div>
 
-<!-- QR PANEL -->
 <div class="remote-panel" id="remotePanel">
   <h3>Control remoto</h3>
   <div class="room-code" id="roomCode">···</div>
@@ -451,76 +476,21 @@
   <div class="remote-status" id="remotePanelStatus">Esperando conexión…</div>
 </div>
 
-<!-- LEYENDA (se rellena dinámicamente por JS) -->
 <div class="legend" id="legend"></div>
 
-<!-- GUION -->
 <div id="script">
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Apertura</div><div class="section-title">Entrada al programa</div><div class="divider"></div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Hola, familia Betesda! ¿Cómo están todos hoy?</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡Bienvenidos a un nuevo episodio de <strong>Momentos</strong>, el noticiero que te cuenta todo lo que Dios hizo en nuestra iglesia este mes!</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Yo soy Julián…</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡Y yo soy Fabiana! Y hoy les traemos cuatro noticias increíbles. ¡Fue un mes lleno de la mano de Dios!</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Vamos con la primera noticia!</div></div>
+  <div class="empty-state" id="emptyState">
+    Este guion está en blanco.<br>
+    Toca <strong>✏️ Editar</strong> arriba y luego <strong>+ Agregar bloque</strong> para empezar a construirlo.
   </div>
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Bloque 1</div><div class="section-title">Velada del Año</div><div class="divider"></div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Julián, ¿cómo describirías lo que vivieron los jóvenes en la <strong>Velada del Año</strong>?</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Como una experiencia que no se olvida! Los jóvenes vivieron una noche donde Dios habló directo al corazón.</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Aprendieron que las heridas no sanan cuando las ocultamos. Tienen que ser expuestas para que Jesús las pueda sanar.</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Que perdonar no es rendirse… ¡el perdón es el inicio de un proceso de sanidad! Y que Dios no quita nuestras batallas, nos enseña a lucharlas de su mano.</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text"><em>(con convicción)</em> Estamos seguros de que Dios sana, perdona y restaura. ¡Y este evento fue el inicio de ese proceso para muchos jóvenes!</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Gracias, Señor, por una noche que cambió vidas!</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Bloque 2</div><div class="section-title">Festikids</div><div class="divider"></div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Y nosotros los niños también tuvimos nuestro momento este mes!</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡Así es! Vivimos el <strong>Festikids</strong>, un tiempo increíble donde aprendimos el valor que tenemos en Jesús.</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">A través de la vida de diferentes personajes bíblicos, descubrimos cuán importantes somos para Dios.</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡Y no solo aprendimos! También reímos, jugamos y nos divertimos muchísimo.</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text"><em>(mirando a cámara)</em> Porque Dios nos ama, nos valora… ¡y tenemos un lugar muy especial en su corazón!</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡Fue una celebración para nuestra generación!</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Bloque 3</div><div class="section-title">Brigada Médica — Hacor</div><div class="divider"></div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Y hablando de cuidarnos… el ministerio de <strong>Hacor</strong> nos realizó una brigada médica donde cada uno de nosotros fue atendido y revisado con mucho cuidado.</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Estas son esas manos diligentes que nos sirven, que nos aman y que siembran en nuestra generación.</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Cuidar nuestra salud también es una forma de honrar la obra que Dios puso en nuestras vidas.</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Gracias al ministerio de Hacor! Esas manos que nos sirven reflejan el corazón de Cristo.</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Bloque 4</div><div class="section-title">Día del Padre</div><div class="divider"></div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">¡Y cerramos este mes con una celebración muy especial!</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">¡El <strong>Día del Padre</strong>! Este mes festejamos a cada papito de Betesda.</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Elogiamos su esfuerzo, su amor, su cuidado y la fortaleza con la que guían a sus familias cada día.</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Celebramos la vida de cada papá que se hace cargo, que no se rinde, que con fe lleva a su familia hacia Cristo.</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Porque un papá que camina con Dios… es el mayor regalo que puede tener una familia.</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text"><em>(con ternura)</em> Papás de Betesda, ¡los admiramos, los honramos y les damos gracias a Dios por cada uno de ustedes!</div></div>
-    <div class="line" data-speaker="ambos"><div class="speaker">Ambos</div><div class="line-text">¡Feliz día, papás!</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-header"><div class="section-tag">Cierre</div><div class="section-title">Despedida</div><div class="divider"></div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Bueno familia Betesda, esas fueron las noticias de este mes en <strong>Momentos</strong>.</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">La Velada del Año, el Festikids, la Brigada Médica de Hacor, y el Día del Padre. ¡Un mes que Dios usó para sanar, celebrar y fortalecer!</div></div>
-    <div class="line" data-speaker="julian"><div class="speaker">Julián</div><div class="line-text">Dios es fiel… y cada uno de estos momentos lo demuestra.</div></div>
-    <div class="line" data-speaker="fabiana"><div class="speaker">Fabiana</div><div class="line-text">Nos vemos en el próximo episodio de Momentos…</div></div>
-    <div class="line" data-speaker="ambos"><div class="speaker">Ambos</div><div class="line-text">¡Bendiciones para todos! 👋</div></div>
-  </div>
-
-  <footer>Betesda Media · Momentos · Guion de grabación</footer>
+  <div id="sectionsContainer"></div>
+  <button class="add-block-btn" id="addBlockBtn">+ Agregar bloque</button>
+  <footer id="footerText">Teleprompter Williz · Guion de grabación</footer>
 </div>
 
-<!-- ══ REMOTE UI (iPhone) ══ -->
 <div class="remote-ui" id="remoteUi">
   <div class="r-topbar">
-    <div class="r-logo">MOMENTOS Jun. 2026 <span>▶</span> Control</div>
+    <div class="r-logo"><span id="rLogoTitle">Teleprompter Williz</span> · Control</div>
     <div class="r-status" id="rStatus">Conectando…</div>
   </div>
 
@@ -570,7 +540,6 @@
 </div>
 
 <script>
-/* Bloqueo extra contra el zoom por doble tap en iOS */
 let lastTouchEnd = 0;
 document.addEventListener('touchend', e => {
   const now = Date.now();
@@ -578,9 +547,6 @@ document.addEventListener('touchend', e => {
   lastTouchEnd = now;
 }, { passive: false });
 
-/* ════════════════════════════════════════════
-   MODO DETECT
-════════════════════════════════════════════ */
 const params   = new URLSearchParams(window.location.search);
 const remoteId = params.get('remote');
 if (remoteId) {
@@ -594,50 +560,44 @@ if (remoteId) {
    TELEPROMPTER (iPad)
 ════════════════════════════════════════════ */
 async function initTeleprompter() {
-  const STORAGE_KEY = 'momentos_teleprompter_data_v1';
+  const STORAGE_KEY = 'momentos_teleprompter_data_v2';
   const CLOUD_URL = 'https://betesda-teleprompter-default-rtdb.firebaseio.com/momentos_script.json';
 
-  let presenters = {
-    julian:  { name: 'Julián',  color: '#5bc4f5' },
-    fabiana: { name: 'Fabiana', color: '#f87db0' },
-    ambos:   { name: 'Ambos',   color: '#f8991d' }
+  const DEFAULT_DATA = {
+    appTitle: 'Teleprompter Williz',
+    presenters: { p1: { name: 'Presentador 1', color: '#5bc4f5' } },
+    sections: []
   };
 
-  /* — Cargar datos guardados antes de construir la UI — */
-  function loadFromData(data) {
-    if (!data) return;
-    if (data.presenters) presenters = data.presenters;
-    const lineEls = document.querySelectorAll('.line');
-    if (data.lines && data.lines.length === lineEls.length) {
-      lineEls.forEach((line, i) => {
-        const textEl = line.querySelector('.line-text');
-        if (textEl && data.lines[i] !== undefined) textEl.innerHTML = data.lines[i];
-        if (data.speakers && data.speakers[i]) line.dataset.speaker = data.speakers[i];
-      });
-    }
+  let scriptData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+
+  function isValidData(d) {
+    return d && typeof d === 'object' && Array.isArray(d.sections) && d.presenters && typeof d.presenters === 'object';
   }
 
-  /* Prioridad: nube (compartido entre equipos) → si falla, respaldo local de este equipo */
   let cloudLoaded = false;
   try {
     const res = await fetch(CLOUD_URL, { cache: 'no-store' });
     if (res.ok) {
       const cloudData = await res.json();
-      if (cloudData) { loadFromData(cloudData); cloudLoaded = true; }
+      if (isValidData(cloudData)) { scriptData = cloudData; cloudLoaded = true; }
     }
   } catch(e) {}
   if (!cloudLoaded) {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) loadFromData(JSON.parse(saved));
+      if (saved) {
+        const local = JSON.parse(saved);
+        if (isValidData(local)) scriptData = local;
+      }
     } catch(e) {}
   }
 
-  const lines    = document.querySelectorAll('.line');
-  const sections = document.querySelectorAll('.section');
-  const bar      = document.getElementById('progressBar');
-  const speedEl  = document.getElementById('speedVal');
-  const scriptEl = document.getElementById('script');
+  const bar        = document.getElementById('progressBar');
+  const speedEl     = document.getElementById('speedVal');
+  const scriptEl    = document.getElementById('script');
+  const sectionsEl  = document.getElementById('sectionsContainer');
+  const emptyStateEl = document.getElementById('emptyState');
   let scrolling  = false;
   let speed      = 1.0;
   let fontSize   = 1.35;
@@ -647,61 +607,132 @@ async function initTeleprompter() {
   let raf;
   let peer, remotePeer;
 
-  /* ── SISTEMA DE PRESENTADORES ── */
+  function allLines() { return document.querySelectorAll('.line'); }
+  function allSections() { return document.querySelectorAll('.section'); }
+
+  /* ── RENDERIZADO DESDE DATOS ── */
   function applySpeakerColor(select) {
-    const p = presenters[select.value] || Object.values(presenters)[0];
+    const p = scriptData.presenters[select.value] || Object.values(scriptData.presenters)[0];
     if (p) select.style.color = p.color;
   }
 
-  function initSpeakerSystem() {
-    lines.forEach(line => {
-      const speakerDiv = line.querySelector('.speaker');
-      if (!speakerDiv || speakerDiv.tagName === 'SELECT') return;
-      let id = line.dataset.speaker;
-      if (!id || !presenters[id]) id = Object.keys(presenters)[0];
-      line.dataset.speaker = id;
-
-      const select = document.createElement('select');
-      select.className = 'speaker-select';
-      Object.keys(presenters).forEach(pid => {
-        const opt = document.createElement('option');
-        opt.value = pid;
-        opt.textContent = presenters[pid].name;
-        if (pid === id) opt.selected = true;
-        select.appendChild(opt);
-      });
-      select.addEventListener('change', () => {
-        line.dataset.speaker = select.value;
-        applySpeakerColor(select);
-        saveEditsLocally();
-      });
-      speakerDiv.replaceWith(select);
-      applySpeakerColor(select);
+  function buildSpeakerSelect(currentId) {
+    const select = document.createElement('select');
+    select.className = 'speaker-select';
+    const ids = Object.keys(scriptData.presenters);
+    const valid = ids.includes(currentId) ? currentId : ids[0];
+    ids.forEach(pid => {
+      const opt = document.createElement('option');
+      opt.value = pid;
+      opt.textContent = scriptData.presenters[pid].name;
+      if (pid === valid) opt.selected = true;
+      select.appendChild(opt);
     });
-    renderLegend();
+    select.addEventListener('change', () => {
+      const line = select.closest('.line');
+      line.dataset.speaker = select.value;
+      applySpeakerColor(select);
+      saveEditsLocally();
+    });
+    return select;
   }
 
-  function refreshAllSpeakerSelects() {
-    document.querySelectorAll('.speaker-select').forEach(select => {
-      const line = select.closest('.line');
-      let current = line.dataset.speaker;
-      if (!presenters[current]) { current = Object.keys(presenters)[0]; line.dataset.speaker = current; }
-      select.innerHTML = '';
-      Object.keys(presenters).forEach(pid => {
-        const opt = document.createElement('option');
-        opt.value = pid; opt.textContent = presenters[pid].name;
-        if (pid === current) opt.selected = true;
-        select.appendChild(opt);
+  function renderScript() {
+    sectionsEl.innerHTML = '';
+    emptyStateEl.style.display = scriptData.sections.length === 0 ? 'block' : 'none';
+
+    scriptData.sections.forEach((section, sIdx) => {
+      const secEl = document.createElement('div');
+      secEl.className = 'section';
+      secEl.dataset.sectionId = section.id;
+
+      const header = document.createElement('div');
+      header.className = 'section-header';
+
+      const tagEl = document.createElement('div');
+      tagEl.className = 'section-tag';
+      tagEl.textContent = section.tag || ('Bloque ' + (sIdx + 1));
+      if (editMode) tagEl.setAttribute('contenteditable', 'true');
+      tagEl.addEventListener('blur', saveEditsLocally);
+
+      const titleEl = document.createElement('div');
+      titleEl.className = 'section-title';
+      titleEl.textContent = section.title || '';
+      if (editMode) titleEl.setAttribute('contenteditable', 'true');
+      titleEl.addEventListener('blur', saveEditsLocally);
+
+      const dividerEl = document.createElement('div');
+      dividerEl.className = 'divider';
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'section-del-btn';
+      delBtn.textContent = '🗑 Eliminar bloque';
+      delBtn.addEventListener('click', () => {
+        if (!confirm('¿Eliminar el bloque "' + (section.title || section.tag) + '" y todas sus líneas?')) return;
+        syncDomToData();
+        scriptData.sections.splice(sIdx, 1);
+        renderScript();
+        saveEditsLocally();
       });
-      applySpeakerColor(select);
+
+      header.appendChild(tagEl);
+      header.appendChild(titleEl);
+      header.appendChild(dividerEl);
+      header.appendChild(delBtn);
+      secEl.appendChild(header);
+
+      section.lines.forEach((lineData, lIdx) => {
+        const lineEl = document.createElement('div');
+        lineEl.className = 'line';
+        lineEl.dataset.speaker = lineData.speaker;
+
+        const select = buildSpeakerSelect(lineData.speaker);
+        applySpeakerColor(select);
+
+        const textEl = document.createElement('div');
+        textEl.className = 'line-text';
+        textEl.innerHTML = lineData.html || '';
+        if (editMode) textEl.setAttribute('contenteditable', 'true');
+        textEl.addEventListener('blur', saveEditsLocally);
+
+        const delLineBtn = document.createElement('button');
+        delLineBtn.className = 'line-del-btn';
+        delLineBtn.textContent = '✕';
+        delLineBtn.addEventListener('click', () => {
+          syncDomToData();
+          scriptData.sections[sIdx].lines.splice(lIdx, 1);
+          renderScript();
+          saveEditsLocally();
+        });
+
+        lineEl.appendChild(select);
+        lineEl.appendChild(textEl);
+        lineEl.appendChild(delLineBtn);
+        secEl.appendChild(lineEl);
+      });
+
+      const addLineBtn = document.createElement('button');
+      addLineBtn.className = 'add-line-btn';
+      addLineBtn.textContent = '+ Añadir línea';
+      addLineBtn.addEventListener('click', () => {
+        syncDomToData();
+        const firstPresenter = Object.keys(scriptData.presenters)[0];
+        scriptData.sections[sIdx].lines.push({ speaker: firstPresenter, html: 'Nuevo texto…' });
+        renderScript();
+        saveEditsLocally();
+      });
+      secEl.appendChild(addLineBtn);
+
+      sectionsEl.appendChild(secEl);
     });
+
     renderLegend();
   }
 
   function renderLegend() {
     const legend = document.getElementById('legend');
     legend.innerHTML = '';
-    Object.values(presenters).forEach(p => {
+    Object.values(scriptData.presenters).forEach(p => {
       const item = document.createElement('div');
       item.className = 'legend-item';
       item.innerHTML = '<div class="dot" style="background:' + p.color + '"></div> ' + p.name;
@@ -709,43 +740,100 @@ async function initTeleprompter() {
     });
   }
 
-  initSpeakerSystem();
+  /* Lee el DOM actual (textos editados a mano) y lo vuelca sobre scriptData */
+  function syncDomToData() {
+    const newSections = [];
+    allSections().forEach(secEl => {
+      const tag = secEl.querySelector('.section-tag')?.textContent.trim() || '';
+      const title = secEl.querySelector('.section-title')?.textContent.trim() || '';
+      const lines = Array.from(secEl.querySelectorAll('.line')).map(lineEl => ({
+        speaker: lineEl.dataset.speaker,
+        html: lineEl.querySelector('.line-text').innerHTML
+      }));
+      newSections.push({ id: secEl.dataset.sectionId, tag, title, lines });
+    });
+    scriptData.sections = newSections;
+  }
 
-  /* — Panel de presentadores — */
+  /* ── TÍTULO DE LA APP (editable) ── */
+  const appTitleEl = document.getElementById('appTitleEl');
+  const footerTextEl = document.getElementById('footerText');
+  function applyAppTitle() {
+    const title = scriptData.appTitle || 'Teleprompter';
+    appTitleEl.textContent = title;
+    document.title = title;
+    footerTextEl.textContent = title + ' · Guion de grabación';
+  }
+  applyAppTitle();
+  appTitleEl.addEventListener('blur', () => {
+    scriptData.appTitle = appTitleEl.textContent.trim() || 'Teleprompter';
+    applyAppTitle();
+    saveEditsLocally();
+  });
+
+  renderScript();
+
+  /* ── AGREGAR BLOQUE ── */
+  document.getElementById('addBlockBtn').addEventListener('click', () => {
+    syncDomToData();
+    const n = scriptData.sections.length + 1;
+    scriptData.sections.push({
+      id: 'sec' + Date.now(),
+      tag: 'Bloque ' + n,
+      title: 'Nuevo bloque',
+      lines: []
+    });
+    renderScript();
+    saveEditsLocally();
+  });
+
+  /* ── BORRAR GUION COMPLETO ── */
+  document.getElementById('btnResetScript').addEventListener('click', () => {
+    if (!confirm('¿Borrar TODOS los bloques y líneas del guion? Los presentadores se conservan. Esta acción no se puede deshacer.')) return;
+    if (!confirm('Confirma una vez más: esto borra el guion completo para todos los que usen este link. ¿Continuar?')) return;
+    scriptData.sections = [];
+    renderScript();
+    saveEditsLocally();
+    reset();
+    showToast();
+  });
+
+  /* ── PANEL DE PRESENTADORES ── */
   const presentersOverlay = document.getElementById('presentersOverlay');
   function renderPresentersPanel() {
     const list = document.getElementById('presentersList');
     list.innerHTML = '';
-    Object.keys(presenters).forEach(pid => {
+    Object.keys(scriptData.presenters).forEach(pid => {
       const row = document.createElement('div');
       row.className = 'presenter-row';
       row.innerHTML =
-        '<input type="color" value="' + presenters[pid].color + '" class="presenter-color" data-pid="' + pid + '">' +
-        '<input type="text" value="' + presenters[pid].name + '" class="presenter-name" data-pid="' + pid + '">' +
+        '<input type="color" value="' + scriptData.presenters[pid].color + '" class="presenter-color" data-pid="' + pid + '">' +
+        '<input type="text" value="' + scriptData.presenters[pid].name + '" class="presenter-name" data-pid="' + pid + '">' +
         '<button class="presenter-remove" data-pid="' + pid + '">🗑</button>';
       list.appendChild(row);
     });
     list.querySelectorAll('.presenter-color').forEach(inp => {
       inp.addEventListener('input', e => {
-        presenters[e.target.dataset.pid].color = e.target.value;
-        refreshAllSpeakerSelects(); saveEditsLocally();
+        scriptData.presenters[e.target.dataset.pid].color = e.target.value;
+        syncDomToData(); renderScript(); saveEditsLocally();
       });
     });
     list.querySelectorAll('.presenter-name').forEach(inp => {
       inp.addEventListener('input', e => {
-        presenters[e.target.dataset.pid].name = e.target.value;
-        refreshAllSpeakerSelects(); saveEditsLocally();
+        scriptData.presenters[e.target.dataset.pid].name = e.target.value;
+        syncDomToData(); renderScript(); saveEditsLocally();
       });
     });
     list.querySelectorAll('.presenter-remove').forEach(btn => {
       btn.addEventListener('click', e => {
         const pid = e.target.dataset.pid;
-        if (Object.keys(presenters).length <= 1) { alert('Debe quedar al menos un presentador.'); return; }
-        if (!confirm('¿Eliminar a "' + presenters[pid].name + '"? Sus líneas pasarán al primer presentador restante.')) return;
-        delete presenters[pid];
-        const fallback = Object.keys(presenters)[0];
-        lines.forEach(line => { if (line.dataset.speaker === pid) line.dataset.speaker = fallback; });
-        refreshAllSpeakerSelects();
+        if (Object.keys(scriptData.presenters).length <= 1) { alert('Debe quedar al menos un presentador.'); return; }
+        if (!confirm('¿Eliminar a "' + scriptData.presenters[pid].name + '"? Sus líneas pasarán al primer presentador restante.')) return;
+        syncDomToData();
+        delete scriptData.presenters[pid];
+        const fallback = Object.keys(scriptData.presenters)[0];
+        scriptData.sections.forEach(sec => sec.lines.forEach(l => { if (l.speaker === pid) l.speaker = fallback; }));
+        renderScript();
         renderPresentersPanel();
         saveEditsLocally();
       });
@@ -753,11 +841,12 @@ async function initTeleprompter() {
   }
   document.getElementById('addPresenterBtn').addEventListener('click', () => {
     const palette = ['#5bc4f5','#f87db0','#f8991d','#a78bfa','#4ade80','#f87171','#facc15','#38bdf8','#fb923c','#e879f9'];
-    const used = Object.values(presenters).map(p => p.color);
-    const nextColor = palette.find(c => !used.includes(c)) || palette[Object.keys(presenters).length % palette.length];
+    const used = Object.values(scriptData.presenters).map(p => p.color);
+    const nextColor = palette.find(c => !used.includes(c)) || palette[Object.keys(scriptData.presenters).length % palette.length];
     const newId = 'p' + Date.now();
-    presenters[newId] = { name: 'Nuevo', color: nextColor };
-    refreshAllSpeakerSelects();
+    scriptData.presenters[newId] = { name: 'Nuevo', color: nextColor };
+    syncDomToData();
+    renderScript();
     renderPresentersPanel();
     saveEditsLocally();
   });
@@ -766,7 +855,7 @@ async function initTeleprompter() {
   document.getElementById('btnPresentersHeader').addEventListener('click', openPresenters);
   document.getElementById('closePresentersOverlay').addEventListener('click', () => presentersOverlay.classList.remove('visible'));
 
-  /* ── GUARDADO LOCAL Y CÓDIGO DE RESPALDO ── */
+  /* ── GUARDADO ── */
   let saveToastTimeout;
   function showToast() {
     const toast = document.getElementById('saveToast');
@@ -775,22 +864,13 @@ async function initTeleprompter() {
     saveToastTimeout = setTimeout(() => toast.classList.remove('show'), 2200);
   }
 
-  function gatherData() {
-    return {
-      lines: Array.from(lines).map(l => l.querySelector('.line-text').innerHTML),
-      speakers: Array.from(lines).map(l => l.dataset.speaker),
-      presenters: presenters
-    };
-  }
-
   function saveEditsLocally() {
-    const data = gatherData();
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
-    // Guardado en la nube: se propaga a cualquier otro equipo que abra el link
+    syncDomToData();
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(scriptData)); } catch(e) {}
     fetch(CLOUD_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(scriptData)
     }).catch(() => {});
     sendScriptToRemote();
   }
@@ -800,7 +880,7 @@ async function initTeleprompter() {
 
   document.getElementById('btnSaveScript').addEventListener('click', () => {
     saveEditsLocally();
-    const code = btoa(unescape(encodeURIComponent(JSON.stringify(gatherData()))));
+    const code = btoa(unescape(encodeURIComponent(JSON.stringify(scriptData))));
     document.getElementById('saveCodeText').value = code;
     saveOverlay.classList.add('visible');
     showToast();
@@ -822,9 +902,9 @@ async function initTeleprompter() {
     if (!raw) return;
     try {
       const data = JSON.parse(decodeURIComponent(escape(atob(raw))));
-      loadFromData(data);
-      refreshAllSpeakerSelects();
-      document.querySelectorAll('.line-text').forEach((el, i) => { if (data.lines && data.lines[i] !== undefined) el.innerHTML = data.lines[i]; });
+      if (!isValidData(data)) throw new Error('formato inválido');
+      scriptData = data;
+      renderScript();
       saveEditsLocally();
       loadOverlay.classList.remove('visible');
       showToast();
@@ -841,7 +921,7 @@ async function initTeleprompter() {
   document.getElementById('sDown').addEventListener('click', () => setSpeed(speed - 0.2));
   document.getElementById('sUp').addEventListener('click',   () => setSpeed(speed + 0.2));
 
-  /* — Tamaño texto (sin límite práctico) — */
+  /* — Tamaño texto — */
   function setFontSize(v) {
     fontSize = Math.min(12.0, Math.max(0.9, parseFloat(v.toFixed(2))));
     document.querySelectorAll('.line-text').forEach(el => el.style.fontSize = fontSize + 'rem');
@@ -855,7 +935,7 @@ async function initTeleprompter() {
     scriptEl.style.filter = brightness < 1.0 ? 'brightness(' + brightness + ')' : '';
   }
 
-  /* — Pantalla completa (modo inmersivo, mantiene nombres) — */
+  /* — Pantalla completa — */
   const btnFs = document.getElementById('btnFs');
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
@@ -890,20 +970,17 @@ async function initTeleprompter() {
     editMode = !editMode;
     document.body.classList.toggle('edit-mode', editMode);
     document.getElementById('btnEdit').classList.toggle('active', editMode);
-    document.querySelectorAll('.line-text').forEach(el => {
-      if (editMode) el.setAttribute('contenteditable','true');
-      else el.removeAttribute('contenteditable');
-    });
-    if (editMode) { scrolling = false; cancelAnimationFrame(raf); }
-    else saveEditsLocally();
+    if (editMode) {
+      scrolling = false; cancelAnimationFrame(raf);
+      appTitleEl.setAttribute('contenteditable', 'true');
+    } else {
+      appTitleEl.removeAttribute('contenteditable');
+    }
+    renderScript();
+    if (!editMode) saveEditsLocally();
     sendRemoteState();
   }
   document.getElementById('btnEdit').addEventListener('click', toggleEdit);
-
-  /* Autosave al salir de foco de una línea editada */
-  scriptEl.addEventListener('blur', e => {
-    if (editMode && e.target.classList && e.target.classList.contains('line-text')) saveEditsLocally();
-  }, true);
 
   function sendRemoteState() {
     if (remotePeer && remotePeer.open) {
@@ -919,20 +996,20 @@ async function initTeleprompter() {
 
   function sendScriptToRemote() {
     if (remotePeer && remotePeer.open) {
-      remotePeer.send({ script: gatherData() });
+      remotePeer.send({ script: scriptData });
     }
   }
 
   /* — Scroll — */
   function play()  { if (editMode) return; scrolling = true; cancelAnimationFrame(raf); raf = requestAnimationFrame(autoScroll); }
   function pause() { scrolling = false; cancelAnimationFrame(raf); }
-  function reset() { pause(); window.scrollTo({ top:0, behavior:'smooth' }); bar.style.width='0%'; lines.forEach(l=>l.classList.remove('active')); }
+  function reset() { pause(); window.scrollTo({ top:0, behavior:'smooth' }); bar.style.width='0%'; allLines().forEach(l=>l.classList.remove('active')); }
 
   function scrollDelta(delta) { window.scrollBy(0, delta); updateProgress(); highlightCurrent(); }
 
   function goToBlock(dir) {
     const current = window.scrollY + window.innerHeight * 0.3;
-    const sectionTops = Array.from(sections).map(s => s.getBoundingClientRect().top + window.scrollY);
+    const sectionTops = Array.from(allSections()).map(s => s.getBoundingClientRect().top + window.scrollY);
     if (dir === 'next') {
       const next = sectionTops.find(t => t > current + 10);
       if (next !== undefined) window.scrollTo({ top: next - 80, behavior: 'smooth' });
@@ -963,13 +1040,13 @@ async function initTeleprompter() {
   function highlightCurrent() {
     const mid = window.scrollY + window.innerHeight * 0.45;
     let closest = null, closestDist = Infinity;
-    lines.forEach(line => {
+    allLines().forEach(line => {
       const rect = line.getBoundingClientRect();
       const lineCenter = window.scrollY + rect.top + rect.height / 2;
       const dist = Math.abs(lineCenter - mid);
       if (dist < closestDist) { closestDist = dist; closest = line; }
     });
-    lines.forEach(l => l.classList.remove('active'));
+    allLines().forEach(l => l.classList.remove('active'));
     if (closest) closest.classList.add('active');
   }
 
@@ -978,7 +1055,6 @@ async function initTeleprompter() {
   document.getElementById('btnReset').addEventListener('click', reset);
   window.addEventListener('scroll', updateProgress);
 
-  /* — Teclado — */
   document.addEventListener('keydown', e => {
     if (editMode) return;
     if (e.code==='Space')     { e.preventDefault(); scrolling ? pause() : play(); }
@@ -1079,7 +1155,6 @@ function initRemote(peerId) {
   });
   peer.on('error', () => { rStatus.textContent = 'Sin conexión'; });
 
-  /* — Vista en vivo del guion dentro de la zona de deslizar — */
   const scriptViewEl = document.getElementById('rScriptView');
   const swipeIconEl  = document.getElementById('rSwipeIcon');
   const swipeLabelEl = document.getElementById('rSwipeLabel');
@@ -1087,17 +1162,24 @@ function initRemote(peerId) {
   let lastPercent = 0;
 
   function buildScriptView(data) {
-    if (!data.lines) return;
+    if (!data.sections) return;
+    const rLogoTitle = document.getElementById('rLogoTitle');
+    if (rLogoTitle && data.appTitle) rLogoTitle.textContent = data.appTitle;
     scriptViewEl.innerHTML = '';
-    data.lines.forEach((html, i) => {
-      const speakerId = data.speakers && data.speakers[i];
-      const presenter = (data.presenters && speakerId && data.presenters[speakerId]) || { name: '', color: '#8899bb' };
-      const row = document.createElement('div');
-      row.className = 'r-script-line';
-      row.innerHTML =
-        '<div class="r-script-speaker" style="color:' + presenter.color + '">' + presenter.name + '</div>' +
-        '<div class="r-script-text">' + html + '</div>';
-      scriptViewEl.appendChild(row);
+    data.sections.forEach(section => {
+      const secTitle = document.createElement('div');
+      secTitle.className = 'r-script-section-title';
+      secTitle.textContent = (section.tag || '') + (section.title ? ' · ' + section.title : '');
+      scriptViewEl.appendChild(secTitle);
+      (section.lines || []).forEach(lineData => {
+        const presenter = (data.presenters && data.presenters[lineData.speaker]) || { name: '', color: '#8899bb' };
+        const row = document.createElement('div');
+        row.className = 'r-script-line';
+        row.innerHTML =
+          '<div class="r-script-speaker" style="color:' + presenter.color + '">' + presenter.name + '</div>' +
+          '<div class="r-script-text">' + (lineData.html || '') + '</div>';
+        scriptViewEl.appendChild(row);
+      });
     });
     swipeIconEl.style.display = 'none';
     swipeLabelEl.style.display = 'none';
