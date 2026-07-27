@@ -637,6 +637,14 @@ async function initTeleprompter() {
     return select;
   }
 
+  /* Forzar pegado como texto plano — evita que WhatsApp/Word traigan
+     tamaños de letra ocultos que ignoran el control de tamaño de la app */
+  function cleanPaste(e) {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+  }
+
   function renderScript() {
     sectionsEl.innerHTML = '';
     emptyStateEl.style.display = scriptData.sections.length === 0 ? 'block' : 'none';
@@ -654,12 +662,14 @@ async function initTeleprompter() {
       tagEl.textContent = section.tag || ('Bloque ' + (sIdx + 1));
       if (editMode) tagEl.setAttribute('contenteditable', 'true');
       tagEl.addEventListener('blur', saveEditsLocally);
+      tagEl.addEventListener('paste', cleanPaste);
 
       const titleEl = document.createElement('div');
       titleEl.className = 'section-title';
       titleEl.textContent = section.title || '';
       if (editMode) titleEl.setAttribute('contenteditable', 'true');
       titleEl.addEventListener('blur', saveEditsLocally);
+      titleEl.addEventListener('paste', cleanPaste);
 
       const dividerEl = document.createElement('div');
       dividerEl.className = 'divider';
@@ -694,6 +704,7 @@ async function initTeleprompter() {
         textEl.innerHTML = lineData.html || '';
         if (editMode) textEl.setAttribute('contenteditable', 'true');
         textEl.addEventListener('blur', saveEditsLocally);
+        textEl.addEventListener('paste', cleanPaste);
 
         const delLineBtn = document.createElement('button');
         delLineBtn.className = 'line-del-btn';
@@ -770,6 +781,7 @@ async function initTeleprompter() {
     applyAppTitle();
     saveEditsLocally();
   });
+  appTitleEl.addEventListener('paste', cleanPaste);
 
   renderScript();
 
